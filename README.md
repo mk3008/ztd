@@ -1,2 +1,3 @@
-# ztd - From DDL to tested SQL
-Generate mappers, unit tests, and SQL impact reports for runtime-free TypeScript apps.
+# Show me the SQL.
+
+Ashiba handles the boring parts.
