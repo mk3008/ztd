@@ -401,7 +401,7 @@ function runCatalogContractCheck(options: {
           issues.push('queryModel metadata must be stored in generated/query.meta.ts, not mixed into the editable contract file.');
         }
         if (metadata.requiresMetadataFile && !metadata.hasQueryModel) {
-          issues.push('generated/query.meta.ts is required for queryModel metadata but was not found.');
+          issues.push(`${metadata.expectedMetadataFile ?? 'generated/query.meta.ts'} is required for queryModel metadata but was not found.`);
         }
         const checksSssqlCompression = metadata.analysisSssqlCompressionJson !== undefined
           || metadata.bindingSssqlCompressionJson !== undefined;
@@ -568,19 +568,25 @@ function extractQueryModelMetadata(specFilePath: string): {
   bindingSssqlCompressionJson?: string;
   hasInlineQueryModel?: boolean;
   requiresMetadataFile?: boolean;
+  expectedMetadataFile?: string;
 } {
-  const metadataPath = path.join(path.dirname(specFilePath), 'generated', 'query.meta.ts');
-  const hasMetadataFile = existsSync(metadataPath);
   const specSource = readFileSync(specFilePath, 'utf8');
+  const metadataImport = extractGeneratedMetadataImport(specSource);
+  const metadataRelativePath = metadataImport
+    ? metadataImport.replace(/^\.\//, '').replace(/\.js$/, '.ts')
+    : path.join('generated', 'query.meta.ts');
+  const metadataPath = path.join(path.dirname(specFilePath), metadataRelativePath);
+  const hasMetadataFile = existsSync(metadataPath);
   const source = hasMetadataFile ? readFileSync(metadataPath, 'utf8') : '';
   const hasInlineQueryModel = /export\s+const\s+queryModel\s*=/.test(specSource);
-  const requiresMetadataFile = /generated\/query\.meta\.js/.test(specSource) || /\bqueryModel\.analysis\b/.test(specSource);
+  const requiresMetadataFile = Boolean(metadataImport) || /\bqueryModel\.analysis\b/.test(specSource);
   const hasQueryModel = /\bqueryModel\b/.test(source);
   if (!hasQueryModel) {
     return {
       hasQueryModel: false,
       hasInlineQueryModel,
       requiresMetadataFile,
+      expectedMetadataFile: normalizePath(metadataRelativePath),
       analysisNamedParameters: [],
       analysisResultColumns: [],
       bindingOrderedNames: [],
@@ -645,7 +651,12 @@ function extractQueryModelMetadata(specFilePath: string): {
     bindingSssqlCompressionJson,
     hasInlineQueryModel,
     requiresMetadataFile,
+    expectedMetadataFile: normalizePath(metadataRelativePath),
   };
+}
+
+function extractGeneratedMetadataImport(source: string): string | undefined {
+  return source.match(/import\s+\{\s*queryModel\s*\}\s+from\s+['"](\.\/generated\/[^'"]+\.meta\.js)['"]/)?.[1];
 }
 
 function parseObjectLiteralAfter(source: string, marker: string): Record<string, unknown> | undefined {

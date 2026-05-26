@@ -177,7 +177,7 @@ function verifySingleDriverAdapterConsumer(root, entry) {
     stdio: 'inherit',
     shell: process.platform === 'win32',
   });
-  const generatedMetadata = readFileSync(path.join(srcDir, 'generated', 'query.meta.ts'), 'utf8');
+  const generatedMetadata = readFileSync(path.join(srcDir, 'generated', 'users.meta.ts'), 'utf8');
   if (!generatedMetadata.includes(entry.expectedBinding)) {
     throw new Error(`Generated model-gen metadata is missing ${entry.expectedBinding}.`);
   }
@@ -196,7 +196,7 @@ function verifySingleDriverAdapterConsumer(root, entry) {
 function driverAdapterTypeSmokeSource(id) {
   if (id === 'pg') {
     return `import { createPostgresAdapter } from '@ashiba/driver-adapter-pg';
-import { queryModel } from './generated/query.meta.js';
+import { queryModel } from './generated/users.meta.js';
 
 const sourceSql = 'select * from users where id = :id';
 
@@ -214,7 +214,7 @@ createPostgresAdapter({
 
   if (id === 'mysql2') {
     return `import { createMysql2Adapter } from '@ashiba/driver-adapter-mysql2';
-import { queryModel } from './generated/query.meta.js';
+import { queryModel } from './generated/users.meta.js';
 
 const sourceSql = 'select * from users where id = :id';
 
@@ -231,7 +231,7 @@ createMysql2Adapter({
   }
 
   return `import { createMssqlAdapter } from '@ashiba/driver-adapter-mssql';
-import { queryModel } from './generated/query.meta.js';
+import { queryModel } from './generated/users.meta.js';
 
 const sourceSql = 'select * from users where id = :id';
 
@@ -259,7 +259,7 @@ function driverAdapterRuntimeSmokeScript(id) {
     return `
     const { readFileSync } = await import('node:fs');
     const { createPostgresAdapter } = await import('@ashiba/driver-adapter-pg');
-    const metadataSource = readFileSync('./src/generated/query.meta.ts', 'utf8');
+    const metadataSource = readFileSync('./src/generated/users.meta.ts', 'utf8');
     const queryModel = JSON.parse(metadataSource.match(/export const queryModel = ([\\s\\S]*) as const;/)?.[1] ?? 'null');
     if (!queryModel) throw new Error('generated query metadata was not readable');
 
@@ -284,7 +284,7 @@ function driverAdapterRuntimeSmokeScript(id) {
     return `
     const { readFileSync } = await import('node:fs');
     const { createMysql2Adapter } = await import('@ashiba/driver-adapter-mysql2');
-    const metadataSource = readFileSync('./src/generated/query.meta.ts', 'utf8');
+    const metadataSource = readFileSync('./src/generated/users.meta.ts', 'utf8');
     const queryModel = JSON.parse(metadataSource.match(/export const queryModel = ([\\s\\S]*) as const;/)?.[1] ?? 'null');
     if (!queryModel) throw new Error('generated query metadata was not readable');
 
@@ -308,7 +308,7 @@ function driverAdapterRuntimeSmokeScript(id) {
   return `
     const { readFileSync } = await import('node:fs');
     const { createMssqlAdapter } = await import('@ashiba/driver-adapter-mssql');
-    const metadataSource = readFileSync('./src/generated/query.meta.ts', 'utf8');
+    const metadataSource = readFileSync('./src/generated/users.meta.ts', 'utf8');
     const queryModel = JSON.parse(metadataSource.match(/export const queryModel = ([\\s\\S]*) as const;/)?.[1] ?? 'null');
     if (!queryModel) throw new Error('generated query metadata was not readable');
 

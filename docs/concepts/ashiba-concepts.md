@@ -36,6 +36,7 @@ Ashiba should cover practical development support often expected from ORMs, excl
 - DBMS-neutral product vocabulary and configuration surfaces, even when the initial starter uses PostgreSQL.
 - Explicit DBMS starter selection during setup; Ashiba should not silently choose an application database driver.
 - Customer tests per selected DBMS and wrapped driver that prove minimum functionality, not only installability.
+- Disposable verification artifacts should live under `tmp/` or another explicit temporary workspace; `src/sql` must not become an Ashiba convention for work files or generated customer-test fixtures.
 - Application-owned package manager state. `ashiba init` may scaffold files, but it should not create or manage `package.json` as if Ashiba owned the consuming project.
 - Review-oriented generated artifacts around SQL, DDL, tests, mappings, migrations, sqlgrep, and impact analysis.
 - Generated code that humans and AI agents may edit after scaffolding.
@@ -1160,7 +1161,7 @@ Generated code is meant to be readable and editable, so Ashiba needs explicit ch
 
 Generated code should be visible, readable, editable by humans and AI agents, drift-checked, and meant to grow with the application. Generation is the start of ownership, not the end of the workflow. The exception is library-owned files under generated folders, such as DDL-derived unit-test schema files and query metadata files, which may be regenerated.
 
-Generated files that Ashiba owns and files that humans are expected to edit must not be mixed in the same physical file. If a command refreshes metadata, the refreshed metadata must live in an obvious generated metadata file such as `generated/query.meta.ts`, while editable boundary code keeps only human-owned choices such as whether optional SSSQL compression is enabled for that query.
+Generated files that Ashiba owns and files that humans are expected to edit must not be mixed in the same physical file. If a command refreshes metadata, the refreshed metadata must live in an obvious generated metadata file such as `generated/query.meta.ts`, while editable boundary code keeps only human-owned choices such as whether optional SSSQL compression is enabled for that query. When a command can emit multiple query contracts into one directory, generated metadata filenames must be collision-free instead of reusing one implicit `query.meta.ts` path.
 
 ### Why It Exists
 
@@ -1173,6 +1174,7 @@ Ashiba scaffolds starting points and review artifacts rather than locking the ap
 - Clear ownership of generated versus human-authored files.
 - Library-owned generated-folder files for DDL-derived unit-test schemas and query metadata files.
 - Physical separation between generated-owned metadata and editable boundary code.
+- Collision-free generated metadata paths for sibling query contracts.
 - Drift checks for generated contracts.
 - Keeping generated files visible in the repository instead of hiding them behind a generator.
 - Explicit failure detection with clear cause and next action when generated schema/model artifacts drift.
@@ -1521,7 +1523,7 @@ Queries also need stable names or IDs so debugging, drift checks, log traces, pe
 ### Included Responsibilities
 
 - Stable query ID or query name.
-- Query-local `boundary.ts`.
+- Query-local `query.ts`.
 - SQL file.
 - DTO or mapped result contract exposed to feature code.
 - Parameter contract.

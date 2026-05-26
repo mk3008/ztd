@@ -1,6 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,7 +12,7 @@ const tarballRoot = path.join(workRoot, 'tarballs');
 const customerRoot = path.join(workRoot, 'customers');
 const corepack = process.platform === 'win32' ? 'corepack.cmd' : 'corepack';
 const docker = process.platform === 'win32' ? 'docker.exe' : 'docker';
-const withDocker = process.argv.includes('--with-docker');
+const withoutDocker = process.argv.includes('--no-docker');
 
 resetDirectory(workRoot);
 mkdirSync(tarballRoot, { recursive: true });
@@ -21,20 +20,18 @@ mkdirSync(customerRoot, { recursive: true });
 
 const tarballs = packAshibaPackages();
 
-if (!withDocker) {
-  throw new Error('customer functional tests require --with-docker because they must execute real DB-backed CRUD and mapping checks.');
+if (withoutDocker) {
+  throw new Error('customer functional tests require Docker because they must execute real DB-backed CRUD and mapping checks.');
 }
 
-const mysqlPort = await findFreePort();
-const mssqlPort = await findFreePort();
 const containerNames = {
   mysql2: `ashiba-mysql2-functional-${process.pid}`,
   mssql: `ashiba-mssql-functional-${process.pid}`,
 };
 
 try {
-  startMysqlContainer(containerNames.mysql2, mysqlPort);
-  startMssqlContainer(containerNames.mssql, mssqlPort);
+  const mysqlPort = startMysqlContainer(containerNames.mysql2);
+  const mssqlPort = startMssqlContainer(containerNames.mssql);
 
   verifyMysql2Customer(mysqlPort);
   verifyMssqlCustomer(mssqlPort);
@@ -67,7 +64,7 @@ function verifyMysql2Customer(port) {
 
   run(corepack, ['pnpm', 'install'], root);
   generateQueryModels(root);
-  waitForMysql(root);
+  waitForMysql(root, port);
   run(process.execPath, ['run-functional.mjs'], root);
 }
 
@@ -93,7 +90,7 @@ function verifyMssqlCustomer(port) {
 
   run(corepack, ['pnpm', 'install'], root);
   generateQueryModels(root);
-  waitForMssql(root);
+  waitForMssql(root, port);
   run(process.execPath, ['run-functional.mjs'], root);
 }
 
@@ -112,31 +109,32 @@ function writeCustomerPackageJson(root, options) {
 }
 
 function writeFunctionalSqlFiles(root) {
-  const sqlDir = path.join(root, 'src', 'sql');
-  mkdirSync(sqlDir, { recursive: true });
-  writeFileSync(path.join(sqlDir, 'insert-user.sql'), [
+  for (const query of ['insert-user', 'select-user', 'update-user', 'delete-user', 'insert-type-sample', 'select-type-sample']) {
+    mkdirSync(path.join(root, 'tmp', 'query-contracts', query), { recursive: true });
+  }
+  writeFileSync(path.join(root, 'tmp', 'query-contracts', 'insert-user', 'insert-user.sql'), [
     'insert into users (email, display_name, external_account_id)',
     'values (:email, :display_name, :external_account_id)',
     '',
   ].join('\n'), 'utf8');
-  writeFileSync(path.join(sqlDir, 'select-user.sql'), [
+  writeFileSync(path.join(root, 'tmp', 'query-contracts', 'select-user', 'select-user.sql'), [
     'select user_id, email, display_name, login_count, external_account_id',
     'from users',
     'where email = :email',
     '',
   ].join('\n'), 'utf8');
-  writeFileSync(path.join(sqlDir, 'update-user.sql'), [
+  writeFileSync(path.join(root, 'tmp', 'query-contracts', 'update-user', 'update-user.sql'), [
     'update users',
     'set display_name = :display_name, login_count = :login_count',
     'where email = :email',
     '',
   ].join('\n'), 'utf8');
-  writeFileSync(path.join(sqlDir, 'delete-user.sql'), [
+  writeFileSync(path.join(root, 'tmp', 'query-contracts', 'delete-user', 'delete-user.sql'), [
     'delete from users',
     'where email = :email',
     '',
   ].join('\n'), 'utf8');
-  writeFileSync(path.join(sqlDir, 'insert-type-sample.sql'), [
+  writeFileSync(path.join(root, 'tmp', 'query-contracts', 'insert-type-sample', 'insert-type-sample.sql'), [
     'insert into type_samples (',
     '  sample_key, int_value, smallint_value, bigint_value, decimal_value, float_value,',
     '  bool_value, varchar_value, text_value, date_value, datetime_value',
@@ -146,7 +144,7 @@ function writeFunctionalSqlFiles(root) {
     ')',
     '',
   ].join('\n'), 'utf8');
-  writeFileSync(path.join(sqlDir, 'select-type-sample.sql'), [
+  writeFileSync(path.join(root, 'tmp', 'query-contracts', 'select-type-sample', 'select-type-sample.sql'), [
     'select',
     '  sample_key, int_value, smallint_value, bigint_value, decimal_value, float_value,',
     '  bool_value, varchar_value, text_value, date_value, datetime_value',
@@ -158,20 +156,18 @@ function writeFunctionalSqlFiles(root) {
 
 function generateQueryModels(root) {
   for (const query of ['insert-user', 'select-user', 'update-user', 'delete-user', 'insert-type-sample', 'select-type-sample']) {
+    const queryDir = `tmp/query-contracts/${query}`;
     run(corepack, [
       'pnpm',
       'exec',
       'ashiba',
       'model-gen',
-      `src/sql/${query}.sql`,
+      `${queryDir}/${query}.sql`,
       '--out',
-      `src/sql/${query}.query.ts`,
+      `${queryDir}/${query}.query.ts`,
     ], root);
-    assertFileContains(path.join(root, 'src', 'sql', 'generated', 'query.meta.ts'), 'queryModel');
-    const generatedDir = path.join(root, 'src', 'sql', 'generated');
-    const metadataPath = path.join(generatedDir, `${query}.meta.ts`);
-    const generatedPath = path.join(generatedDir, 'query.meta.ts');
-    writeFileSync(metadataPath, readFileSync(generatedPath, 'utf8'), 'utf8');
+    assertFileContains(path.join(root, 'tmp', 'query-contracts', query, 'generated', `${query}.meta.ts`), 'queryModel');
+    assertFileContains(path.join(root, 'tmp', 'query-contracts', query, `${query}.query.ts`), `from "./generated/${query}.meta.js"`);
   }
 }
 
@@ -282,13 +278,13 @@ try {
 }
 
 async function execute(adapter, name, params) {
-  const sql = readFileSync(new URL(\`./src/sql/\${name}.sql\`, import.meta.url), 'utf8');
+  const sql = readFileSync(new URL(\`./tmp/query-contracts/\${name}/\${name}.sql\`, import.meta.url), 'utf8');
   const queryModel = loadQueryModel(name);
-  return adapter.execute({ sql, sqlPath: \`src/sql/\${name}.sql\`, queryModel }, params);
+  return adapter.execute({ sql, sqlPath: \`tmp/query-contracts/\${name}/\${name}.sql\`, queryModel }, params);
 }
 
 function loadQueryModel(name) {
-  const source = readFileSync(new URL(\`./src/sql/generated/\${name}.meta.ts\`, import.meta.url), 'utf8');
+  const source = readFileSync(new URL(\`./tmp/query-contracts/\${name}/generated/\${name}.meta.ts\`, import.meta.url), 'utf8');
   const json = source.match(/export const queryModel = ([\\s\\S]*) as const;/)?.[1];
   if (!json) throw new Error(\`query metadata not found for \${name}\`);
   return JSON.parse(json);
@@ -422,13 +418,13 @@ try {
 }
 
 async function execute(adapter, name, params) {
-  const sqlText = readFileSync(new URL(\`./src/sql/\${name}.sql\`, import.meta.url), 'utf8');
+  const sqlText = readFileSync(new URL(\`./tmp/query-contracts/\${name}/\${name}.sql\`, import.meta.url), 'utf8');
   const queryModel = loadQueryModel(name);
-  return adapter.execute({ sql: sqlText, sqlPath: \`src/sql/\${name}.sql\`, queryModel }, params);
+  return adapter.execute({ sql: sqlText, sqlPath: \`tmp/query-contracts/\${name}/\${name}.sql\`, queryModel }, params);
 }
 
 function loadQueryModel(name) {
-  const source = readFileSync(new URL(\`./src/sql/generated/\${name}.meta.ts\`, import.meta.url), 'utf8');
+  const source = readFileSync(new URL(\`./tmp/query-contracts/\${name}/generated/\${name}.meta.ts\`, import.meta.url), 'utf8');
   const json = source.match(/export const queryModel = ([\\s\\S]*) as const;/)?.[1];
   if (!json) throw new Error(\`query metadata not found for \${name}\`);
   return JSON.parse(json);
@@ -454,7 +450,7 @@ function assertDateTimeLike(actual, expectedPrefix, label) {
 `;
 }
 
-function startMysqlContainer(name, port) {
+function startMysqlContainer(name) {
   cleanupContainer(name);
   run(docker, [
     'run',
@@ -465,13 +461,14 @@ function startMysqlContainer(name, port) {
     '-e',
     'MYSQL_DATABASE=ashiba',
     '-p',
-    `${port}:3306`,
+    '127.0.0.1::3306',
     '-d',
     'mysql:8.0',
   ], repoRoot);
+  return inspectPublishedPort(name, '3306/tcp');
 }
 
-function startMssqlContainer(name, port) {
+function startMssqlContainer(name) {
   cleanupContainer(name);
   run(docker, [
     'run',
@@ -482,20 +479,21 @@ function startMssqlContainer(name, port) {
     '-e',
     'MSSQL_SA_PASSWORD=Ashiba_12345',
     '-p',
-    `${port}:1433`,
+    '127.0.0.1::1433',
     '-d',
     'mcr.microsoft.com/mssql/server:2022-latest',
   ], repoRoot);
+  return inspectPublishedPort(name, '1433/tcp');
 }
 
-function waitForMysql(root) {
+function waitForMysql(root, port) {
   run(process.execPath, ['--input-type=module', '-e', `
     import mysql from 'mysql2/promise';
     for (let attempt = 0; attempt < 90; attempt += 1) {
       try {
         const connection = await mysql.createConnection({
           host: '127.0.0.1',
-          port: ${mysqlPort},
+          port: ${port},
           user: 'root',
           password: 'ashiba',
           database: 'ashiba',
@@ -510,14 +508,14 @@ function waitForMysql(root) {
   `], root);
 }
 
-function waitForMssql(root) {
+function waitForMssql(root, port) {
   run(process.execPath, ['--input-type=module', '-e', `
     import sql from 'mssql';
     for (let attempt = 0; attempt < 120; attempt += 1) {
       try {
         const pool = await sql.connect({
           server: '127.0.0.1',
-          port: ${mssqlPort},
+          port: ${port},
           user: 'sa',
           password: 'Ashiba_12345',
           database: 'master',
@@ -597,19 +595,19 @@ function sortedObject(entries) {
   return Object.fromEntries([...entries.entries()].sort(([left], [right]) => left.localeCompare(right)));
 }
 
-async function findFreePort() {
-  return await new Promise((resolve, reject) => {
-    const server = createServer();
-    server.listen(0, () => {
-      const address = server.address();
-      server.close(() => {
-        if (address && typeof address === 'object') {
-          resolve(address.port);
-          return;
-        }
-        reject(new Error('Could not allocate a free TCP port.'));
-      });
-    });
-    server.on('error', reject);
-  });
+function inspectPublishedPort(containerName, containerPort) {
+  const output = execFileSync(docker, [
+    'inspect',
+    '--format',
+    `{{(index (index .NetworkSettings.Ports "${containerPort}") 0).HostPort}}`,
+    containerName,
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  }).trim();
+  const port = Number(output);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`Could not inspect Docker published port for ${containerName}:${containerPort}.`);
+  }
+  return port;
 }

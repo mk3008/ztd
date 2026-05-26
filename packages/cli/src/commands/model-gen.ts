@@ -156,7 +156,7 @@ export function runModelGen(options: ModelGenOptions): ModelGenResult {
   };
   const id = options.id ?? deriveQueryId(rootDir, sqlPath);
   const out = options.out ? path.resolve(rootDir, options.out) : undefined;
-  const metadataOut = out ? path.join(path.dirname(out), 'generated', 'query.meta.ts') : undefined;
+  const metadataOut = out ? path.join(path.dirname(out), 'generated', `${deriveMetadataBaseName(out)}.meta.ts`) : undefined;
   const relativeSqlFile = normalizePath(path.relative(out ? path.dirname(out) : rootDir, sqlPath));
   const relativeMetadataFile = metadataOut && out
     ? toRelativeImportPath(normalizePath(path.relative(path.dirname(out), metadataOut)).replace(/\.ts$/, '.js'))
@@ -538,6 +538,11 @@ function deriveQueryId(rootDir: string, sqlPath: string): string {
     .replace(/^src\/features\//, '')
     .replace(/\/queries\//g, '.')
     .replace(/\//g, '.');
+}
+
+function deriveMetadataBaseName(outPath: string): string {
+  const baseName = path.basename(outPath, path.extname(outPath));
+  return baseName.replace(/\.query$/, '') || 'query';
 }
 
 function toPascal(value: string): string {

@@ -28,9 +28,9 @@ function normalizeText(value: string): string {
 describe('observed SQL matching', () => {
   it('ranks the original asset above distractors even when optional predicates are pruned', () => {
     const workspace = createTempDir('observed-sql-match');
-    const primarySqlFile = path.join(workspace, 'src', 'sql', 'users', 'list.sql');
-    const distractorSqlFile = path.join(workspace, 'src', 'sql', 'products', 'list.sql');
-    const joinDivergenceSqlFile = path.join(workspace, 'src', 'sql', 'users', 'list-with-join.sql');
+    const primarySqlFile = path.join(workspace, 'src', 'features', 'users', 'queries', 'list.sql');
+    const distractorSqlFile = path.join(workspace, 'src', 'features', 'products', 'queries', 'list.sql');
+    const joinDivergenceSqlFile = path.join(workspace, 'src', 'features', 'users', 'queries', 'list-with-join.sql');
 
     writeSqlFile(
       primarySqlFile,
@@ -72,7 +72,7 @@ describe('observed SQL matching', () => {
       `
     });
 
-    expect(report.matches[0]?.sql_file).toBe('src/sql/users/list.sql');
+    expect(report.matches[0]?.sql_file).toBe('src/features/users/queries/list.sql');
     expect(report.matches[0]?.score).toBeGreaterThan(report.matches[1]?.score ?? 0);
     expect(report.matches[0]?.reasons.length).toBeGreaterThan(0);
     expect(report.matches[0]?.differences).toEqual(expect.any(Array));
@@ -83,7 +83,7 @@ describe('observed SQL matching', () => {
       schemaVersion: 1
     });
     expect(parsed.matches[0]).toMatchObject({
-      sql_file: 'src/sql/users/list.sql',
+      sql_file: 'src/features/users/queries/list.sql',
       section_scores: expect.objectContaining({
         projection: expect.any(Number),
         source: expect.any(Number),
@@ -96,7 +96,7 @@ describe('observed SQL matching', () => {
     const text = normalizeText(formatObservedSqlMatchReport(report, 'text'));
     expect(text).toContain('Observed SQL match report');
     expect(text).toContain('Top matches:');
-    expect(text).toContain('src/sql/users/list.sql#0');
+    expect(text).toContain('src/features/users/queries/list.sql#0');
     expect(text).toContain('reasons:');
     expect(text).toContain('differences:');
   });
@@ -110,7 +110,7 @@ describe('observed SQL matching', () => {
     `;
 
     writeSqlFile(
-      path.join(workspace, 'src', 'sql', 'users', 'structure.sql'),
+      path.join(workspace, 'src', 'features', 'users', 'queries', 'structure.sql'),
       `
         SELECT lower(u.email)
         FROM public.users u
@@ -119,7 +119,7 @@ describe('observed SQL matching', () => {
     );
 
     writeSqlFile(
-      path.join(workspace, 'src', 'sql', 'users', 'function-match.sql'),
+      path.join(workspace, 'src', 'features', 'users', 'queries', 'function-match.sql'),
       `
         SELECT lower(u.email)
         FROM public.users u
@@ -128,7 +128,7 @@ describe('observed SQL matching', () => {
     );
 
     writeSqlFile(
-      path.join(workspace, 'src', 'sql', 'users', 'function-collision.sql'),
+      path.join(workspace, 'src', 'features', 'users', 'queries', 'function-collision.sql'),
       `
         SELECT lower(u.status)
         FROM public.users u
@@ -141,18 +141,18 @@ describe('observed SQL matching', () => {
       observedSql
     });
 
-    expect(report.matches[0]?.sql_file).toBe('src/sql/users/structure.sql');
+    expect(report.matches[0]?.sql_file).toBe('src/features/users/queries/structure.sql');
     expect(report.matches[0]?.score).toBeGreaterThan(report.matches[1]?.score ?? 0);
     const scoresByFile = Object.fromEntries(report.matches.map((match) => [match.sql_file, match.score]));
-    expect(scoresByFile['src/sql/users/function-match.sql']).toBeGreaterThan(
-      scoresByFile['src/sql/users/function-collision.sql'] ?? 0
+    expect(scoresByFile['src/features/users/queries/function-match.sql']).toBeGreaterThan(
+      scoresByFile['src/features/users/queries/function-collision.sql'] ?? 0
     );
   });
 
   it('continues ranking when a candidate file cannot be read', () => {
     const workspace = createTempDir('observed-sql-match-partial-failure');
-    const readableSqlFile = path.join(workspace, 'src', 'sql', 'users', 'good.sql');
-    const unreadableSqlFile = path.join(workspace, 'src', 'sql', 'users', 'broken.sql');
+    const readableSqlFile = path.join(workspace, 'src', 'features', 'users', 'queries', 'good.sql');
+    const unreadableSqlFile = path.join(workspace, 'src', 'features', 'users', 'queries', 'broken.sql');
 
     writeSqlFile(
       readableSqlFile,
@@ -186,7 +186,7 @@ describe('observed SQL matching', () => {
       }
     });
 
-    expect(report.matches[0]?.sql_file).toBe('src/sql/users/good.sql');
+    expect(report.matches[0]?.sql_file).toBe('src/features/users/queries/good.sql');
     expect(report.summary.filesRead).toBeGreaterThan(0);
     expect(report.summary.filesSkipped).toBe(1);
     expect(report.warnings.some((warning) => warning.code === 'file-read-failed')).toBe(true);

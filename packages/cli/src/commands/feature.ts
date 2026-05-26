@@ -107,7 +107,7 @@ export interface FeatureQueryMetadataRefreshResult {
   featureName: string;
   queryName: string;
   sqlFile: string;
-  boundaryFile: string;
+  queryFile: string;
   metadataFile: string;
   dryRun: boolean;
   changed: boolean;
@@ -119,7 +119,7 @@ export interface FeatureGeneratedMapperCheckResult {
     feature: string;
     query: string;
     sqlFile: string;
-    boundaryFile: string;
+    queryFile: string;
     sqlParameters: string[];
     mapperParameters: string[];
     sqlResultColumns: string[];
@@ -369,7 +369,7 @@ export function runFeatureQueryMetadataRefresh(options: FeatureQueryMetadataRefr
   const queryName = normalizeQueryName(requireValue(options.query, '--query'));
   const queryDir = path.join(boundaryDir, 'queries', queryName);
   const sqlPath = path.join(queryDir, `${queryName}.sql`);
-  const boundaryPath = path.join(queryDir, 'boundary.ts');
+  const queryPath = path.join(queryDir, 'query.ts');
   const metadataPath = path.join(queryDir, 'generated', 'query.meta.ts');
   if (!existsSync(sqlPath)) {
     throw invalidCliInputError(
@@ -379,12 +379,12 @@ export function runFeatureQueryMetadataRefresh(options: FeatureQueryMetadataRefr
       { sqlFile: toProjectPath(rootDir, sqlPath) },
     );
   }
-  if (!existsSync(boundaryPath)) {
+  if (!existsSync(queryPath)) {
     throw invalidCliInputError(
       'ASHIBA_FEATURE_QUERY_BOUNDARY_NOT_FOUND',
-      `Boundary file was not found for query metadata refresh: ${toProjectPath(rootDir, boundaryPath)}.`,
-      'Run feature query scaffold first, or recreate the query boundary before refreshing metadata.',
-      { boundaryFile: toProjectPath(rootDir, boundaryPath) },
+      `Query file was not found for query metadata refresh: ${toProjectPath(rootDir, queryPath)}.`,
+      'Run feature query scaffold first, or recreate the query file before refreshing metadata.',
+      { queryFile: toProjectPath(rootDir, queryPath) },
     );
   }
 
@@ -403,7 +403,7 @@ export function runFeatureQueryMetadataRefresh(options: FeatureQueryMetadataRefr
     featureName,
     queryName,
     sqlFile: toProjectPath(rootDir, sqlPath),
-    boundaryFile: toProjectPath(rootDir, boundaryPath),
+    queryFile: toProjectPath(rootDir, queryPath),
     metadataFile: toProjectPath(rootDir, metadataPath),
     dryRun: options.dryRun === true,
     changed,
@@ -625,16 +625,16 @@ export function runFeatureGeneratedMapperCheck(options: FeatureGeneratedMapperCh
     for (const queryName of queryNames) {
       const queryDir = path.join(queriesDir, queryName);
       const sqlFile = path.join(queryDir, `${queryName}.sql`);
-      const boundaryFile = path.join(queryDir, 'boundary.ts');
-      if (!existsSync(sqlFile) || !existsSync(boundaryFile)) {
+      const queryFile = path.join(queryDir, 'query.ts');
+      if (!existsSync(sqlFile) || !existsSync(queryFile)) {
         continue;
       }
       const sqlParameters = [...new Set(compileNamedParameters(readFileSync(sqlFile, 'utf8')).orderedNames)].sort();
       const sql = readFileSync(sqlFile, 'utf8');
-      const boundary = readFileSync(boundaryFile, 'utf8');
-      const mapperParameters = extractMapperParameters(boundary, queryName).sort();
+      const querySource = readFileSync(queryFile, 'utf8');
+      const mapperParameters = extractMapperParameters(querySource, queryName).sort();
       const sqlResultColumns = extractSqlResultColumns(sql).sort();
-      const mapperResultColumns = extractMapperResultColumns(boundary, queryName).sort();
+      const mapperResultColumns = extractMapperResultColumns(querySource, queryName).sort();
       const missingInMapper = sqlParameters.filter((parameter) => !mapperParameters.includes(parameter));
       const unusedInMapper = mapperParameters.filter((parameter) => !sqlParameters.includes(parameter));
       const missingResultInMapper = sqlResultColumns.filter((column) => !mapperResultColumns.includes(column));
@@ -643,7 +643,7 @@ export function runFeatureGeneratedMapperCheck(options: FeatureGeneratedMapperCh
         feature: featureName,
         query: queryName,
         sqlFile: toProjectPath(rootDir, sqlFile),
-        boundaryFile: toProjectPath(rootDir, boundaryFile),
+        queryFile: toProjectPath(rootDir, queryFile),
         sqlParameters,
         mapperParameters,
         sqlResultColumns,
@@ -976,7 +976,7 @@ function formatGeneratedMapperCheck(result: FeatureGeneratedMapperCheckResult): 
   for (const entry of result.checked) {
     lines.push('', `- ${entry.feature}/${entry.query}`);
     lines.push(`  sql: ${entry.sqlFile}`);
-    lines.push(`  mapper: ${entry.boundaryFile}`);
+    lines.push(`  mapper: ${entry.queryFile}`);
     lines.push(`  sql parameters: ${entry.sqlParameters.length > 0 ? entry.sqlParameters.join(', ') : '(none)'}`);
     lines.push(`  mapper parameters: ${entry.mapperParameters.length > 0 ? entry.mapperParameters.join(', ') : '(none)'}`);
     lines.push(`  sql result columns: ${entry.sqlResultColumns.length > 0 ? entry.sqlResultColumns.join(', ') : '(none)'}`);
@@ -1031,7 +1031,7 @@ function buildQueryFiles(
       contents: sql,
     },
     {
-      relativePath: `${queryDir}/boundary.ts`,
+      relativePath: `${queryDir}/query.ts`,
       kind: 'file',
       contents: renderQueryBoundary(rootDir, queryName, actionPlan, table, primaryKeyColumn),
     },
@@ -1490,7 +1490,7 @@ function renderFeatureWorkflow(featureName: string, queryName: string, plan: Ret
   return [
     `import type { FeatureQueryExecutor } from '${FEATURE_SHARED_EXECUTOR_IMPORT_PATH}';`,
     `import type { ${pascal}Request } from './input.js';`,
-    `import { execute${queryPascal}Query, type ${queryPascal}QueryParams, type ${queryPascal}QueryResult } from './queries/${queryName}/boundary.js';`,
+    `import { execute${queryPascal}Query, type ${queryPascal}QueryParams, type ${queryPascal}QueryResult } from './queries/${queryName}/query.js';`,
     '',
     `export type ${pascal}WorkflowResult = ${plan.action === 'list' ? `${queryPascal}QueryResult[]` : `${queryPascal}QueryResult`};`,
     '',
@@ -1532,7 +1532,7 @@ function renderFeatureOutput(featureName: string, queryName: string, plan: Retur
   const queryPascal = toPascal(queryName);
   const fields = toFeatureFields(plan.rows);
   return [
-    `import type { ${queryPascal}QueryResult } from './queries/${queryName}/boundary.js';`,
+    `import type { ${queryPascal}QueryResult } from './queries/${queryName}/query.js';`,
     '',
     ...renderFeatureResponseType(pascal, plan.action, fields),
     '',
@@ -1842,7 +1842,7 @@ function renderQueryZtdTest(featureName: string, queryName: string): string {
     "import { expect, test } from 'vitest';",
     '',
     `import { runQuerySpecZtdCases } from '${TEST_ZTD_HARNESS_IMPORT_PATH}';`,
-    `import { execute${pascal}Query } from '../boundary.js';`,
+    `import { execute${pascal}Query } from '../query.js';`,
     "import logicCases from './cases/logic.case.js';",
     "import mappingCases from './generated/mapping.cases.js';",
     '',
@@ -1875,7 +1875,7 @@ function renderQueryZtdTypes(
   const outputType = actionPlan.action === 'list' ? `${pascal}QueryResult[]` : `${pascal}QueryResult`;
   return [
     `import type { QuerySpecZtdCase } from '${TEST_ZTD_CASE_TYPES_IMPORT_PATH}';`,
-    `import type { ${pascal}QueryParams, ${pascal}QueryResult } from '../boundary.js';`,
+    `import type { ${pascal}QueryParams, ${pascal}QueryResult } from '../query.js';`,
     '',
     `export type ${pascal}BeforeDb = {`,
     `  ${renderPropertyKey(table.schema)}: {`,
@@ -2256,7 +2256,7 @@ function formatFeatureQueryMetadataRefresh(result: FeatureQueryMetadataRefreshRe
     `Feature query refresh ${result.dryRun ? 'plan' : 'completed'}: ${result.featureName}/${result.queryName}`,
     '',
     `- sql: ${result.sqlFile}`,
-    `- boundary: ${result.boundaryFile}`,
+    `- query: ${result.queryFile}`,
     `- metadata: ${result.metadataFile}`,
     `- changed: ${result.changed ? 'yes' : 'no'}`,
     `- dry-run: ${result.dryRun ? 'true' : 'false'}`,

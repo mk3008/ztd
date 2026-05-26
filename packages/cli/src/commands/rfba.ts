@@ -19,7 +19,7 @@ export interface RfbaInspectResult {
     boundary: RfbaFileStatus;
     queries: Array<{
       name: string;
-      boundary: RfbaFileStatus;
+      query: RfbaFileStatus;
       sql: RfbaFileStatus;
       tests: RfbaFileStatus[];
       issues: string[];
@@ -86,7 +86,7 @@ function inspectFeature(rootDir: string, featuresDir: string, featureName: strin
 
 function inspectQuery(rootDir: string, queriesDir: string, queryName: string): RfbaInspectResult['features'][number]['queries'][number] {
   const queryDir = path.join(queriesDir, queryName);
-  const boundary = fileStatus(rootDir, path.join(queryDir, 'boundary.ts'));
+  const query = fileStatus(rootDir, path.join(queryDir, 'query.ts'));
   const sql = fileStatus(rootDir, path.join(queryDir, `${queryName}.sql`));
   const testsDir = path.join(queryDir, 'tests');
   const tests = existsSync(testsDir)
@@ -96,10 +96,10 @@ function inspectQuery(rootDir: string, queriesDir: string, queryName: string): R
       .map((entry) => fileStatus(rootDir, path.join(testsDir, entry)))
     : [];
   const issues = [
-    ...(!boundary.exists ? [`Query boundary file is missing: ${boundary.path}.`] : []),
+    ...(!query.exists ? [`Query file is missing: ${query.path}.`] : []),
     ...(!sql.exists ? [`Visible SQL file is missing: ${sql.path}.`] : []),
   ];
-  return { name: queryName, boundary, sql, tests, issues };
+  return { name: queryName, query, sql, tests, issues };
 }
 
 function buildRfbaAttainment(features: RfbaInspectResult['features']): RfbaInspectResult['attainment'] {
@@ -118,8 +118,8 @@ function buildRfbaAttainment(features: RfbaInspectResult['features']): RfbaInspe
       nextActions.add('Add query-local review boundaries under each feature queries directory.');
     }
     for (const query of feature.queries) {
-      if (query.issues.some((issue) => issue.includes('Query boundary file'))) {
-        nextActions.add('Add query boundary.ts files that expose editable mapper/query contracts.');
+      if (query.issues.some((issue) => issue.includes('Query file'))) {
+        nextActions.add('Add query.ts files that expose editable mapper/query contracts.');
       }
       if (query.issues.some((issue) => issue.includes('Visible SQL file'))) {
         nextActions.add('Add visible query SQL files next to query boundaries.');
@@ -156,7 +156,7 @@ function formatRfbaInspect(result: RfbaInspectResult): string {
     for (const query of feature.queries) {
       lines.push(
         `  query: ${query.name}`,
-        `    boundary: ${formatFileStatus(query.boundary)}`,
+        `    query: ${formatFileStatus(query.query)}`,
         `    sql: ${formatFileStatus(query.sql)}`,
       );
       for (const test of query.tests) {
