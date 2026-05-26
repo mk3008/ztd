@@ -3,6 +3,7 @@ import type { Command } from 'commander';
 export const COMMANDS = [
   { name: 'init', summary: 'Create a small Ashiba SQL-first starter.' },
   { name: 'config', summary: 'Emit Ashiba project configuration.' },
+  { name: 'describe command', summary: 'Describe one command or list the command catalog for humans and AI agents.' },
   { name: 'ddl risk', summary: 'Report destructive and operational risk for migration SQL.' },
   { name: 'ddl diff', summary: 'Compare DDL snapshots and emit a reviewable difference report.' },
   { name: 'ddl migration generate', summary: 'Compare two DDL snapshots and generate reviewable migration SQL.' },

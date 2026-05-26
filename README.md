@@ -66,6 +66,7 @@ Run `ashiba --help`, `ashiba <command> --help`, or `ashiba describe command --fo
 |---|---|
 | `ashiba init` | Creates a small SQL-first starter with DDL, SQL, feature boundaries, and executable mapper test lanes. |
 | `ashiba config` / `ashiba-config` | Prints an Ashiba config starter. |
+| `ashiba describe command` | Describes one command or lists the command catalog for humans and AI agents. |
 | `ashiba feature scaffold` | Scaffolds a feature-local boundary from DDL metadata. |
 | `ashiba feature query scaffold` | Adds a query boundary under an existing feature. |
 | `ashiba feature tests scaffold` | Adds mapper/traditional test lane files. |
@@ -86,7 +87,10 @@ Run `ashiba --help`, `ashiba <command> --help`, or `ashiba describe command --fo
 | `ashiba query plan` | Plans materialization and review steps for large SQL. |
 | `ashiba query lint` | Reports structural SQL maintainability risks. |
 | `ashiba query patch apply` | Applies a reviewed SQL patch back to visible SQL. |
-| `ashiba query sssql ...` | Lists, scaffolds, refreshes, or removes SQL-first optional-condition metadata. |
+| `ashiba query sssql list` | Lists SQL-first optional-condition scaffold metadata. |
+| `ashiba query sssql scaffold` | Scaffolds SQL-first optional-condition metadata. |
+| `ashiba query sssql refresh` | Refreshes SQL-first optional-condition metadata. |
+| `ashiba query sssql remove` | Removes SQL-first optional-condition metadata. |
 | `ashiba perf init` | Scaffolds the traditional performance lane. |
 | `ashiba perf run` | Inspects a performance run plan without owning DB execution. |
 | `ashiba perf report diff` | Compares saved performance reports. |
