@@ -51,6 +51,7 @@ These concepts primarily belong to `@ashiba/cli`.
 |---|---|---|---|
 | `scaffolded-unit-tests` | Scaffolded Unit Tests | mostly done | Safety mechanism for Ashiba Runtime Zero development. |
 | `test-lanes` | Test Lanes | mostly done | Supports traditional and Zero Table Dependency lanes through init, feature test scaffolds, generated mapping checks, and performance-lane helpers. |
+| `performance-tuning-session` | Performance Tuning Session | mostly done | Traditional DB-backed tuning evidence: representative row counts, timeout status, plans, timings, sandbox-only candidate indexes, and explicit DDL promotion. |
 | `drift-detection` | Drift Detection | mostly done | Checks DDL, SQL, DTO types, and mappers during development. |
 | `migration-artifact` | Migration Artifact | mostly done | Review-oriented migration output, not hidden apply behavior. |
 | `migration-query-generation` | Migration Query Generation | mostly done | CLI compares two DDL inputs and emits migration DDL plus risk info; DB connection and apply are out of scope. |

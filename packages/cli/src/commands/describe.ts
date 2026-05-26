@@ -25,6 +25,8 @@ export const COMMANDS = [
   { name: 'check-contract', summary: 'Check visible SQL contracts against generated mapper boundaries.', useCase: 'Run a broad drift check before commit or release.' },
   { name: 'perf init', summary: 'Scaffold the traditional performance lane.', useCase: 'Start an application-owned tuning scenario for realistic row counts and indexes.' },
   { name: 'perf run', summary: 'Inspect a performance run plan without owning DB execution.', useCase: 'Check benchmark parameters before an application-owned traditional DB-backed performance test.' },
+  { name: 'perf scenario init', summary: 'Scaffold a manual traditional DB-backed tuning scenario.', useCase: 'Record target row counts, response-time requirements, timeout policy, and sandbox/adopted index boundaries.' },
+  { name: 'perf scenario measure', summary: 'Record timing evidence and AI-oriented tuning guidance.', useCase: 'Return duration, timeout, requirement status, execution-plan evidence path, and next actions without making tuning decisions.' },
   { name: 'perf report diff', summary: 'Compare saved performance reports and evidence completeness.', useCase: 'Review whether a tuning change improved representative query duration.' },
   { name: 'rfba inspect', summary: 'Inspect feature/query review boundaries.', useCase: 'Confirm the project still exposes reviewable feature boundaries and query.ts files.' },
 ] as const;

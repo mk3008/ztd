@@ -238,6 +238,43 @@ try {
     'tmp/ddl/migration.sql',
   ], starterRoot);
   assertFileContains(path.join(starterRoot, 'tmp', 'ddl', 'migration.sql'), 'email');
+  run(corepack, [
+    'pnpm',
+    'exec',
+    'ashiba',
+    'perf',
+    'scenario',
+    'init',
+    '--scenario',
+    'users-list',
+    '--query',
+    'src/features/users-list/queries/list/list.sql',
+    '--target-rows',
+    'public.users=100000',
+    '--max-duration-ms',
+    '100',
+    '--timeout-ms',
+    '30000',
+  ], starterRoot);
+  assertFileContains(path.join(starterRoot, 'perf', 'scenarios', 'users-list', 'scenario.json'), '"public.users": 100000');
+  assertFileContains(path.join(starterRoot, 'perf', 'scenarios', 'users-list', 'README.md'), 'Accepted indexes must be promoted into db/ddl');
+  run(corepack, [
+    'pnpm',
+    'exec',
+    'ashiba',
+    'perf',
+    'scenario',
+    'measure',
+    '--scenario',
+    'users-list',
+    '--duration-ms',
+    '42',
+    '--evidence-name',
+    'baseline',
+  ], starterRoot);
+  assertFileContains(path.join(starterRoot, 'perf', 'scenarios', 'users-list', 'evidence', 'baseline.json'), '"durationMs": 42');
+  assertFileContains(path.join(starterRoot, 'perf', 'scenarios', 'users-list', 'evidence', 'baseline.json'), '"candidateIndexScope": "sandbox-only"');
+  assertFileContains(path.join(starterRoot, 'perf', 'scenarios', 'users-list', 'evidence', 'baseline.json'), 'Accepted indexes must be written to db/ddl');
   run(corepack, ['pnpm', 'exec', 'ashiba', '--help'], starterRoot);
   run(corepack, ['pnpm', 'exec', 'ashiba', 'config', '--compact'], starterRoot);
 } finally {

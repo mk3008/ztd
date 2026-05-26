@@ -25,6 +25,7 @@ The `@ashiba/cli` Runtime Zero path should not introduce hidden dynamic SQL rewr
 Type safety is guaranteed through mapper tests and DB-backed integration tests, not runtime type checking of every DB result row. The database already enforces strong type constraints, and Ashiba verifies the SQL-to-mapper contract during development.
 
 Unit tests have two lanes: traditional tests and Zero Table Dependency tests. Mapper tests should prefer Zero Table Dependency; performance tests should prefer traditional DB-backed tests.
+Performance tuning sessions collect representative row-count requirements, execution-plan evidence, timings, timeout status, and AI/human next actions. Candidate indexes are sandbox-only until explicitly promoted into `db/ddl`.
 
 ## Core Boundary
 
@@ -55,6 +56,7 @@ Initial production driver work starts with PostgreSQL. MySQL and SQL Server are 
 - Library-owned generated-folder unit-test schema files derived from DDL
 - Test scaffolding
 - Test lanes for traditional and Zero Table Dependency tests
+- Performance tuning sessions as manual traditional DB-backed evidence loops
 - Drift detection
 - Mapper-tested type safety
 - Migration artifacts for review

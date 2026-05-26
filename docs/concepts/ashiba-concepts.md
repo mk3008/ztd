@@ -1114,6 +1114,51 @@ Performance tests need realistic database execution, query planning, indexes, da
 
 `mostly done`
 
+## Performance Tuning Session
+
+### Definition
+
+A performance tuning session is an explicit traditional DB-backed workflow for collecting tuning evidence from representative data volume.
+
+### Why It Exists
+
+Query tuning needs real database state, statistics, indexes, execution plans, and timing behavior. Ashiba should provide consistent evidence and operational guidance, but it should not decide which index, SQL rewrite, or physical design to adopt.
+
+### Included Responsibilities
+
+- Record representative row-count requirements.
+- Record response-time requirements and timeout policy.
+- Record whether a measurement timed out.
+- Record measured duration when the query returns.
+- Point to execution-plan evidence collected during the tuning session.
+- Return AI/human next actions that explain the tuning loop.
+- State that candidate indexes are sandbox-only.
+- State that accepted indexes must be promoted into `db/ddl` before they become product schema.
+
+### Excluded Responsibilities
+
+- Choosing an index.
+- Choosing a SQL rewrite.
+- Deciding that a candidate index is adopted.
+- Treating sandbox-created indexes as product DDL.
+- Running performance tuning as a default CI gate.
+- Hiding performance tuning inside ordinary unit tests.
+
+### Related Concepts
+
+- `Test Lanes`
+- `Visible SQL`
+- `Migration Artifact`
+- `Drift Detection`
+
+### Current Source Artifacts
+
+- `packages/cli/src/commands/perf.ts`
+
+### Implementation Status
+
+`mostly done`
+
 ## Drift Detection
 
 ### Definition

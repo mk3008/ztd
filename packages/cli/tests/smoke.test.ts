@@ -12,7 +12,7 @@ import { COMMANDS, formatDescribe } from '../src/commands/describe.js';
 import { runFeatureGeneratedMapperCheck, runFeatureQueryMetadataRefresh, runFeatureQueryScaffold, runFeatureScaffold, runFeatureTestsCheck, runFeatureTestsScaffold } from '../src/commands/feature.js';
 import { runLint } from '../src/commands/lint.js';
 import { runModelGen } from '../src/commands/model-gen.js';
-import { runPerfInit, runPerfReportDiff, runPerfRun } from '../src/commands/perf.js';
+import { runPerfInit, runPerfReportDiff, runPerfRun, runPerfScenarioInit, runPerfScenarioMeasure } from '../src/commands/perf.js';
 import { runQueryLint, runQuerySlice, runQuerySssqlAdd, runQueryStructure, runQueryUses } from '../src/commands/query.js';
 import { runRfbaInspect } from '../src/commands/rfba.js';
 
@@ -77,6 +77,8 @@ describe('@ashiba/cli smoke', () => {
       'feature query scaffold',
       'feature tests scaffold',
       'feature tests check',
+      'perf scenario init',
+      'perf scenario measure',
       'perf report diff',
       'rfba inspect',
     ]));
@@ -2065,6 +2067,71 @@ describe('@ashiba/cli smoke', () => {
         overall: 'partial',
         nextActions: ['Add a numeric durationMs or duration_ms to the candidate performance report.'],
       });
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  test('records manual performance tuning scenario evidence and index policy', () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-perf-scenario-'));
+
+    try {
+      mkdirSync(path.join(rootDir, 'src/features/users-list/queries/list'), { recursive: true });
+      writeFileSync(path.join(rootDir, 'src/features/users-list/queries/list/list.sql'), 'select id from public.users where email = :email;', 'utf8');
+      writeFileSync(path.join(rootDir, 'explain.json'), JSON.stringify([{ Plan: { 'Node Type': 'Seq Scan' } }]), 'utf8');
+
+      const init = runPerfScenarioInit({
+        rootDir,
+        scenario: 'users-list',
+        query: 'src/features/users-list/queries/list/list.sql',
+        targetRows: ['public.users=100000'],
+        maxDurationMs: '100',
+        timeoutMs: '30000',
+      });
+
+      expect(init.requirements).toEqual({
+        targetRows: { 'public.users': 100000 },
+        maxDurationMs: 100,
+        timeoutMs: 30000,
+      });
+      expect(init.indexPolicy).toMatchObject({
+        candidateIndexScope: 'sandbox-only',
+        adoptedIndexTarget: 'db/ddl',
+      });
+      expect(readFileSync(path.join(rootDir, 'perf/scenarios/users-list/README.md'), 'utf8')).toContain('Accepted indexes must be promoted into db/ddl');
+
+      const measurement = runPerfScenarioMeasure({
+        rootDir,
+        scenario: 'users-list',
+        durationMs: '182.4',
+        explain: 'explain.json',
+        evidenceName: 'candidate-001',
+      });
+
+      expect(measurement.ok).toBe(false);
+      expect(measurement.result).toEqual({
+        durationMs: 182.4,
+        timedOut: false,
+        meetsRequirement: false,
+      });
+      expect(measurement.evidence.measurementPath).toBe('perf/scenarios/users-list/evidence/candidate-001.json');
+      expect(measurement.nextActions).toContain('Accepted indexes must be written to db/ddl before they become product schema.');
+      expect(JSON.parse(readFileSync(path.join(rootDir, 'perf/scenarios/users-list/evidence/candidate-001.json'), 'utf8'))).toMatchObject({
+        scenario: 'users-list',
+        result: { durationMs: 182.4, meetsRequirement: false },
+        indexPolicy: { candidateIndexScope: 'sandbox-only' },
+      });
+
+      const timedOut = runPerfScenarioMeasure({
+        rootDir,
+        scenario: 'users-list',
+        timedOut: true,
+        evidenceName: 'timeout',
+        dryRun: true,
+      });
+      expect(timedOut.ok).toBe(false);
+      expect(timedOut.result).toMatchObject({ durationMs: null, timedOut: true, meetsRequirement: false });
+      expect(existsSync(path.join(rootDir, 'perf/scenarios/users-list/evidence/timeout.json'))).toBe(false);
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
