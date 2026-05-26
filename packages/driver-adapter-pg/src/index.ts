@@ -78,10 +78,6 @@ export type AshibaPostgresQuerySource = {
  */
 export type AshibaPostgresExecuteOptions = {
   metadata?: AshibaSqlExecutionMetadata;
-  /**
-   * @deprecated Prefer putting query model metadata on AshibaPostgresQuerySource.
-   */
-  queryModel?: AshibaPostgresQueryModel;
   sssqlCompression?: boolean;
   sortProfile?: AshibaSortProfile;
   sort?: readonly AshibaSortInput[];
@@ -165,7 +161,7 @@ export function createPostgresAdapter(
       executeOptions: AshibaPostgresExecuteOptions = {},
     ): Promise<NodePostgresQueryResult<Row>> {
       const sql = query.sql;
-      const queryModel = executeOptions.queryModel ?? query.queryModel;
+      const queryModel = query.queryModel;
       const metadata = {
         ...query.metadata,
         ...executeOptions.metadata,

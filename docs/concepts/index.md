@@ -20,7 +20,7 @@ Source SQL must also remain ordinary SQL. Ashiba should not require proprietary 
 
 SQL must also stay maintainable. Source SQL uses named parameters, such as `:name` or `@name`, and the DB driver wrapper translates them to the concrete driver's placeholder format.
 
-The `@ashiba/cli` Runtime Zero path should not introduce hidden dynamic SQL rewriting into generated application code. SQL should remain directly understandable and debuggable. Driver adapters and extension packages are separate responsibility areas, but Ashiba-specific control data should live in explicit sidecar metadata or query models rather than in proprietary SQL syntax.
+The `@ashiba/cli` Runtime Zero path should not introduce hidden dynamic SQL rewriting into generated application code. SQL should remain directly understandable and debuggable. Driver adapters and extension packages are separate responsibility areas, but Ashiba-specific control data should live in explicit generated metadata files or query models rather than in proprietary SQL syntax.
 
 Type safety is guaranteed through mapper tests and DB-backed integration tests, not runtime type checking of every DB result row. The database already enforces strong type constraints, and Ashiba verifies the SQL-to-mapper contract during development.
 

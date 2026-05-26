@@ -5,8 +5,6 @@
 - `ashiba init`
 - `ashiba config`
 - `ashiba-config`
-- `ashiba ddl risk`
-- `ashiba ddl diff`
 - `ashiba ddl migration generate`
 - `ashiba ddl migration info`
 - `ashiba query uses table`
@@ -19,7 +17,7 @@
 - `ashiba query lint`
 - `ashiba query patch apply`
 - `ashiba query sssql list`
-- `ashiba query sssql scaffold`
+- `ashiba query sssql add`
 - `ashiba query sssql refresh`
 - `ashiba query sssql remove`
 - `ashiba feature scaffold`
@@ -42,7 +40,7 @@
 - workspace `pnpm verify` acceptance gate
 - optional workspace `pnpm verify:postgres-live` PostgreSQL smoke gate
 
-The current implementation provides `ashiba --help`, `ashiba --version`, `ashiba config`, `ashiba-config`, DDL migration generate/info commands, legacy DDL risk/diff aliases, query impact commands, observed SQL matching, CTE structure/graph/slice/plan commands, query lint, SQL patch apply, SSSQL authoring helpers, feature/query/test scaffolds, generated mapper drift checks, SQL-file model generation, top-level lint and contract-check commands, lightweight performance lane planning and report diffing, lightweight test evidence collection/rendering/diffing, RFBA boundary inspection, command descriptors, and a SQL-first `ashiba init` starter for explicit feature scaffolding flows. The starter remains intentionally smaller than the full `ztd-cli` starter where that starter would imply AI behavior-file distribution or runtime ownership.
+The current implementation provides `ashiba --help`, `ashiba --version`, `ashiba config`, `ashiba-config`, DDL migration generate/info commands, query impact commands, observed SQL matching, CTE structure/graph/slice/plan commands, query lint, SQL patch apply, SSSQL authoring helpers, feature/query/test scaffolds, generated mapper drift checks, SQL-file model generation, top-level lint and contract-check commands, lightweight performance lane planning and report diffing, lightweight test evidence collection/rendering/diffing, RFBA boundary inspection, command descriptors, and a SQL-first `ashiba init` starter for explicit feature scaffolding flows. The starter remains intentionally smaller than the full `ztd-cli` starter where that starter would imply AI behavior-file distribution or runtime ownership.
 
 RFBA is adopted as an Ashiba concept. Scaffolding should separate files by reviewable feature/query behavior using VSA-style boundaries, not by technical layers such as repository/service/model as the primary layout. Because review scope is partly subjective, Ashiba fixes the concrete review grain through feature and query scaffolds. A feature may contain multiple query boundaries, and feature boundaries may be subgrouped under the feature root. Generated imports use root-stable aliases for shared seams and app-level test support so subgroup depth does not make scaffolds fragile.
 
@@ -106,7 +104,7 @@ Dev-time SQL structural analysis is AST-first. The `rawsql-ts` AST parser is the
 - DDL watch auto-update is not migrated. Prefer explicit drift failures and actionable error messages over silent background regeneration.
 - Public v1 query analysis should migrate the full `ztd-cli` query analysis command set.
 - Unused named parameters are errors.
-- Legacy PostgreSQL `ddl pull` is represented by the `@ashiba/ddl-pull-pg-dump` helper package. It is not an initial migration query generation responsibility and is not part of the `pg` driver adapter. The package name is intentionally capability-plus-wrapper specific because this package does not own MySQL or SQL Server pull behavior.
+- PostgreSQL `ddl pull` through `pg_dump` is represented by the `@ashiba/ddl-pull-pg-dump` helper package. It is not an initial migration query generation responsibility and is not part of the `pg` driver adapter. The package name is intentionally capability-plus-wrapper specific because this package does not own MySQL or SQL Server pull behavior.
 - Keep `sqlgrep` as the capability name and expose it through Ashiba query commands where useful.
 - Transaction management is not an Ashiba responsibility. Scaffolded transaction-shaped feature code becomes editable application code.
 - `rawsql-ts` core AST analysis can remain an npm dependency of Ashiba tooling packages; parser internals do not need to be ported into Ashiba.

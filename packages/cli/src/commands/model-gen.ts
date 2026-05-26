@@ -12,7 +12,7 @@ import {
   type SqlOptionalConditionCompressionMetadata,
 } from './sql-optional-condition-compression-metadata.js';
 import { inferSqlExpressionContractType } from './sql-expression-type.js';
-import { requiredCliValueError } from '../errors.js';
+import { astParseUserError, requiredCliValueError } from '../errors.js';
 
 export interface ModelGenOptions {
   sqlFile?: string;
@@ -22,7 +22,6 @@ export interface ModelGenOptions {
   ddlDir?: string;
   dryRun?: boolean;
   format?: 'text' | 'json';
-  sssqlCompression?: boolean;
 }
 
 export interface ModelGenResult {
@@ -33,7 +32,9 @@ export interface ModelGenResult {
   analysis: QueryModelAnalysis;
   bindings: QueryModelBindings;
   contents: string;
+  metadataContents: string;
   out?: string;
+  metadataOut?: string;
   dryRun: boolean;
 }
 
@@ -41,7 +42,7 @@ export type QueryModelStatementKind = 'select' | 'insert' | 'update' | 'delete' 
 export type QueryModelRootQueryShape = 'simple-select' | 'compound-select' | 'values' | 'non-select' | 'unknown';
 
 export interface QueryModelAnalysis {
-  astParse: 'ok' | 'failed';
+  astParse: 'ok';
   statementKind: QueryModelStatementKind;
   rootQueryShape: QueryModelRootQueryShape;
   hasTopLevelOrderBy: boolean;
@@ -51,7 +52,6 @@ export interface QueryModelAnalysis {
   resultColumns: string[];
   resultColumnTypes: Record<string, SqlResultColumnContract['type']>;
   namedParameters: string[];
-  error?: string;
 }
 
 export interface QueryModelBindings {
@@ -73,8 +73,21 @@ export interface QueryModelBindings {
       }>;
     };
   };
+  mysql2?: {
+    sourceHash?: string;
+    sql: string;
+    orderedNames: readonly string[];
+  };
+  mssql?: {
+    sourceHash?: string;
+    sql: string;
+    orderedNames: readonly string[];
+  };
 }
 
+/**
+ * Registers the query model generation command on the Ashiba CLI program.
+ */
 export function registerModelGenCommand(program: Command): void {
   program
     .command('model-gen')
@@ -84,7 +97,6 @@ export function registerModelGenCommand(program: Command): void {
     .option('--id <id>', 'Override the query id')
     .option('--root-dir <path>', 'Project root directory', '.')
     .option('--ddl-dir <path>', 'Optional DDL directory for static row type hints')
-    .option('--sssql-compression', 'Deprecated no-op; query metadata now always includes optional condition compression metadata', false)
     .option('--dry-run', 'Print the generated scaffold without writing it', false)
     .option('--format <format>', 'Output format: text or json', 'text')
     .action((sqlFile: string, options: Omit<ModelGenOptions, 'sqlFile'>) => {
@@ -98,21 +110,25 @@ export function registerModelGenCommand(program: Command): void {
           resultColumns: result.resultColumns,
           analysis: result.analysis,
           out: result.out,
+          metadataOut: result.metadataOut,
           dryRun: result.dryRun,
         }, null, 2)}\n`);
         return;
       }
-      process.stdout.write(result.out && !result.dryRun
-        ? `Generated query contract: ${result.out}\n`
-        : result.contents);
+      process.stdout.write(formatModelGenTextResult(result));
     });
 }
 
+/**
+ * Generates an editable query contract and generated query metadata from a visible SQL file.
+ */
 export function runModelGen(options: ModelGenOptions): ModelGenResult {
   const rootDir = path.resolve(options.rootDir ?? '.');
   const sqlPath = path.resolve(rootDir, requireValue(options.sqlFile, '<sqlFile>'));
   const sql = readFileSync(sqlPath, 'utf8');
   const postgresBinding = compileNamedParameters(sql, { placeholderStyle: 'postgres' });
+  const mysql2Binding = compileNamedParameters(sql, { placeholderStyle: 'question' });
+  const mssqlBinding = compileNamedParameters(sql, { placeholderStyle: 'named-at' });
   const parameters = [...new Set(postgresBinding.orderedNames)];
   const resultColumnContracts = buildQueryResultColumnContracts(sql, rootDir, options.ddlDir);
   const resultColumns = resultColumnContracts.map((column) => column.name);
@@ -127,15 +143,34 @@ export function runModelGen(options: ModelGenOptions): ModelGenResult {
       ...buildPostgresSafeSortBindingMetadata(sql, analysis.safeSort),
       ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.sssqlCompression),
     },
+    mysql2: {
+      sourceHash: analysis.sourceHash,
+      sql: mysql2Binding.sql,
+      orderedNames: mysql2Binding.orderedNames,
+    },
+    mssql: {
+      sourceHash: analysis.sourceHash,
+      sql: mssqlBinding.sql,
+      orderedNames: mssqlBinding.orderedNames,
+    },
   };
   const id = options.id ?? deriveQueryId(rootDir, sqlPath);
-  const relativeSqlFile = normalizePath(path.relative(options.out ? path.dirname(path.resolve(rootDir, options.out)) : rootDir, sqlPath));
-  const contents = renderQueryContract({ id, sqlFile: relativeSqlFile, parameters, resultColumnContracts, analysis, bindings });
   const out = options.out ? path.resolve(rootDir, options.out) : undefined;
+  const metadataOut = out ? path.join(path.dirname(out), 'generated', 'query.meta.ts') : undefined;
+  const relativeSqlFile = normalizePath(path.relative(out ? path.dirname(out) : rootDir, sqlPath));
+  const relativeMetadataFile = metadataOut && out
+    ? toRelativeImportPath(normalizePath(path.relative(path.dirname(out), metadataOut)).replace(/\.ts$/, '.js'))
+    : './generated/query.meta.js';
+  const contents = renderQueryContract({ id, sqlFile: relativeSqlFile, parameters, resultColumnContracts, metadataImport: relativeMetadataFile });
+  const metadataContents = renderQueryMetadata({ id, sqlFile: relativeSqlFile, analysis, bindings });
 
   if (out && options.dryRun !== true) {
     mkdirSync(path.dirname(out), { recursive: true });
     writeFileSync(out, contents, 'utf8');
+    if (metadataOut) {
+      mkdirSync(path.dirname(metadataOut), { recursive: true });
+      writeFileSync(metadataOut, metadataContents, 'utf8');
+    }
   }
 
   return {
@@ -146,9 +181,25 @@ export function runModelGen(options: ModelGenOptions): ModelGenResult {
     analysis,
     bindings,
     contents,
+    metadataContents,
     out: out ? normalizePath(path.relative(rootDir, out)) : undefined,
+    metadataOut: metadataOut ? normalizePath(path.relative(rootDir, metadataOut)) : undefined,
     dryRun: options.dryRun === true,
   };
+}
+
+function formatModelGenTextResult(result: ModelGenResult): string {
+  if (result.out && !result.dryRun) {
+    return `Generated query contract: ${result.out}\nGenerated query metadata: ${result.metadataOut}\n`;
+  }
+  const contractLabel = result.out ? result.out : 'stdout/query.contract.ts';
+  const metadataLabel = result.metadataOut ? result.metadataOut : 'stdout/generated/query.meta.ts';
+  return [
+    `--- query contract: ${contractLabel} ---`,
+    result.contents,
+    `--- generated query metadata: ${metadataLabel} ---`,
+    result.metadataContents,
+  ].join('\n');
 }
 
 function renderQueryContract(params: {
@@ -156,13 +207,14 @@ function renderQueryContract(params: {
   sqlFile: string;
   parameters: string[];
   resultColumnContracts: SqlResultColumnContract[];
-  analysis: QueryModelAnalysis;
-  bindings: QueryModelBindings;
+  metadataImport: string;
 }): string {
   const pascal = toPascal(params.id);
   return [
     '// Generated by Ashiba model-gen. Edit this file when the application contract needs to change.',
     '// Keep the SQL file visible and directly runnable in a SQL client.',
+    '',
+    `import { queryModel } from ${JSON.stringify(params.metadataImport)};`,
     '',
     `export const queryId = ${JSON.stringify(params.id)};`,
     `export const sqlFile = ${JSON.stringify(params.sqlFile)};`,
@@ -170,13 +222,6 @@ function renderQueryContract(params: {
     `export interface ${pascal}QueryParams ${renderParamsInterface(params.parameters)}`,
     '',
     `export interface ${pascal}QueryRow ${renderRowInterface(params.resultColumnContracts)}`,
-    '',
-    'export const queryModel = {',
-    '  queryId,',
-    '  sqlFile,',
-    `  analysis: ${JSON.stringify(params.analysis, null, 2).replace(/\n/g, '\n  ')},`,
-    `  bindings: ${JSON.stringify(params.bindings, null, 2).replace(/\n/g, '\n  ')},`,
-    '} as const;',
     '',
     'export const querySpec = {',
     '  id: queryId,',
@@ -188,6 +233,29 @@ function renderQueryContract(params: {
   ].join('\n');
 }
 
+function renderQueryMetadata(params: {
+  id: string;
+  sqlFile: string;
+  analysis: QueryModelAnalysis;
+  bindings: QueryModelBindings;
+}): string {
+  return [
+    '// Generated by Ashiba model-gen. Do not edit by hand.',
+    '// Regenerate this file from the visible SQL when metadata drift is detected.',
+    '',
+    `export const queryModel = ${JSON.stringify({
+      queryId: params.id,
+      sqlFile: params.sqlFile,
+      analysis: params.analysis,
+      bindings: params.bindings,
+    }, null, 2)} as const;`,
+    '',
+  ].join('\n');
+}
+
+/**
+ * Converts source-SQL safe sort insertion metadata into Postgres-compiled offsets.
+ */
 export function buildPostgresSafeSortBindingMetadata(
   sourceSql: string,
   safeSort: SqlSafeSortMetadata,
@@ -236,11 +304,17 @@ export function buildPostgresOptionalConditionCompressionBindingMetadata(
   };
 }
 
+/**
+ * Extracts query result column contracts and enriches them with DDL type hints when available.
+ */
 export function buildQueryResultColumnContracts(sql: string, rootDir?: string, ddlDir?: string): SqlResultColumnContract[] {
   const ddlModel = rootDir ? loadDdlSchemaModel(path.resolve(rootDir), ddlDir) : undefined;
   return applyDdlTypeHints(sql, extractSqlResultColumnContracts(sql), ddlModel);
 }
 
+/**
+ * Builds AST-backed query metadata used by generated boundaries and driver wrappers.
+ */
 export function analyzeQueryModel(
   sql: string,
   namedParameters: string[],
@@ -252,14 +326,24 @@ export function analyzeQueryModel(
   const resultColumnTypes = Object.fromEntries(resultColumnContracts.map((column) => [column.name, column.type]));
   try {
     const parsed = SqlParser.parse(sql);
+    const statementKind = detectStatementKind(parsed);
+    const safeSort = statementKind === 'select'
+      ? buildSqlSafeSortMetadata(sql)
+      : {
+        insertion: {
+          status: 'unresolved' as const,
+          reason: 'Safe sort metadata requires a SELECT query.',
+        },
+        sortable: {},
+      };
     return {
       astParse: 'ok',
-      statementKind: detectStatementKind(parsed),
+      statementKind,
       rootQueryShape: detectRootQueryShape(parsed),
       hasTopLevelOrderBy: hasTopLevelOrderBy(parsed),
       sourceHash,
-      safeSort: buildSqlSafeSortMetadata(sql),
-      ...(options.sssqlCompression
+      safeSort,
+      ...(options.sssqlCompression && statementKind === 'select'
         ? { sssqlCompression: buildSqlOptionalConditionCompressionMetadata(sql) }
         : {}),
       resultColumns,
@@ -267,27 +351,13 @@ export function analyzeQueryModel(
       namedParameters,
     };
   } catch (error) {
-    return {
-      astParse: 'failed',
-      statementKind: 'unknown',
-      rootQueryShape: 'unknown',
-      hasTopLevelOrderBy: false,
-      sourceHash,
-      safeSort: {
-        insertion: {
-          status: 'unresolved',
-          reason: 'SQL AST parse failed during model generation.',
-        },
-        sortable: {},
-      },
-      ...(options.sssqlCompression
-        ? { sssqlCompression: { enabled: true as const, branches: [] } }
-        : {}),
-      resultColumns,
-      resultColumnTypes,
-      namedParameters,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    throw astParseUserError({
+      code: 'ASHIBA_MODEL_GEN_AST_PARSE_FAILED',
+      message: 'SQL AST parse failed during query model generation.',
+      reason: error instanceof Error ? error.message : String(error),
+      sqlKind: 'SQL',
+      operation: 'generating query model metadata',
+    });
   }
 }
 
@@ -480,6 +550,10 @@ function toPascal(value: string): string {
 
 function normalizePath(value: string): string {
   return value.replace(/\\/g, '/');
+}
+
+function toRelativeImportPath(value: string): string {
+  return value.startsWith('.') ? value : `./${value}`;
 }
 
 function requireValue(value: string | undefined, label: string): string {

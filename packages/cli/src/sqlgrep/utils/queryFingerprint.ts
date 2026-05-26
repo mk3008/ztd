@@ -8,7 +8,7 @@ export const QUERY_FINGERPRINT_LENGTH = 12;
 /**
  * Normalize SQL text for stable statement fingerprinting.
  *
- * Fingerprint normalization is a compatibility contract for Issue #478.
+ * Fingerprint normalization is a stable matching contract for Issue #478.
  */
 export function normalizeQueryFingerprintSource(sql: string): string {
   const withoutLineComments = sql

@@ -25,7 +25,7 @@ The initial command migration, packaged consumer smoke, and PostgreSQL adapter c
 
 | Capability | Status | Notes |
 |---|---|---|
-| DDL-first workflow | mostly done | `ddl diff`, `ddl risk`, `ashiba-config`, templates. Legacy `ddl pull` exists in the baseline, but DB connection is outside Ashiba migration query generation scope. |
+| DDL-first workflow | mostly done | `ddl migration generate`, `ddl migration info`, `ashiba-config`, templates. `pg_dump`-based DDL pull exists in the baseline, but DB connection is outside Ashiba migration query generation scope. |
 | SQL files as review boundary | mostly done | Feature/query scaffolds create visible `.sql` files. |
 | Feature scaffold | mostly done | `feature scaffold` creates boundary, query, SQL, tests entrypoint. |
 | Query boundary scaffold | mostly done | `feature query scaffold` adds child query boundaries without rewriting parent boundary. |
@@ -36,7 +36,7 @@ The initial command migration, packaged consumer smoke, and PostgreSQL adapter c
 | Traditional DB-backed test lane | mostly done | Supported as a scaffold lane concept with `ashiba perf` plan inspection, report diffing, evidence completeness checks, and `test-evidence` lane reporting. DB lifecycle and execution remain application-owned by concept. |
 | DDL pull | PostgreSQL `pg_dump` helper | `@ashiba/ddl-pull-pg-dump` provides PostgreSQL `pg_dump` command construction, redacted command preview, and explicit pull execution helpers. It avoids a generic DDL pull name because it does not own MySQL or SQL Server pull behavior. It remains an extension helper because core migration query generation compares explicit DDL inputs without DB connection. It is not part of the `pg` driver adapter because it depends on external DBMS tooling, not the TypeScript driver API. |
 | DDL diff | mostly done | Review-oriented artifacts are produced. |
-| DDL risk analysis | mostly done | `ddl risk` and `ddlRiskEvaluator.ts`. |
+| DDL risk analysis | mostly done | `ddl migration info` and migration risk analysis. |
 | Migration artifact review | mostly done | Diff output includes SQL and companion review artifacts. |
 | Query uses table | mostly done | `query uses table`. |
 | Query uses column | mostly done | `query uses column`. |

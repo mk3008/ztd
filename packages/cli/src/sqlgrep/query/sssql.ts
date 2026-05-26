@@ -44,8 +44,19 @@ export function listSssqlBranches(sqlFile: string): SssqlBranchInfo[] {
   return new SSSQLFilterBuilder().list(readFileSync(path.resolve(sqlFile), 'utf8'));
 }
 
-export function scaffoldSssql(sqlFile: string, options: SssqlScaffoldOptions = {}): SssqlRewriteReport {
-  return applySssqlRewrite(sqlFile, 'query sssql scaffold', options, (sql) => {
+/**
+ * Adds SQL-first optional-condition SSSQL branches to a query file.
+ */
+export function addSssql(sqlFile: string, options: SssqlScaffoldOptions = {}): SssqlRewriteReport {
+  return applySssqlScaffoldRewrite(sqlFile, 'query sssql add', options);
+}
+
+function applySssqlScaffoldRewrite(
+  sqlFile: string,
+  commandName: string,
+  options: SssqlScaffoldOptions
+): SssqlRewriteReport {
+  return applySssqlRewrite(sqlFile, commandName, options, (sql) => {
     const builder = new SSSQLFilterBuilder();
     if (options.spec) {
       return builder.scaffoldBranch(sql, options.spec);

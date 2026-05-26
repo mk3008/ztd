@@ -66,7 +66,7 @@
 
 ### Acceptance Criteria
 
-- `ashiba ddl diff` works from explicit DDL inputs.
+- `ashiba ddl migration generate` works from explicit DDL inputs.
 - `ashiba ddl migration generate` works from explicit DDL inputs.
 - `ashiba ddl migration info` reports risk from explicit DDL inputs.
 - Migration artifacts are reviewable.

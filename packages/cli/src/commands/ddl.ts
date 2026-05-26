@@ -4,12 +4,12 @@ import type { Command } from 'commander';
 import { analyzeMigrationSqlRisks, compareDdlSql } from '../ddl-diff/index.js';
 import { requiredCliValueError } from '../errors.js';
 
-export interface DdlRiskOptions {
+export interface DdlMigrationInfoOptions {
   file?: string;
   format?: 'text' | 'json';
 }
 
-export interface DdlDiffOptions {
+export interface DdlMigrationGenerateOptions {
   from?: string;
   to?: string;
   out?: string;
@@ -32,7 +32,7 @@ export function registerDdlCommand(program: Command): void {
     .option('--out <path>', 'Write generated migration SQL to this file')
     .option('--dry-run', 'Preview generated migration SQL without writing --out', false)
     .option('--format <format>', 'Output format: text or json', 'text')
-    .action((options: DdlDiffOptions) => {
+    .action((options: DdlMigrationGenerateOptions) => {
       const result = runDdlMigrationGenerate(options);
       process.stdout.write(result);
     });
@@ -42,41 +42,14 @@ export function registerDdlCommand(program: Command): void {
     .description('Analyze generated or hand-edited migration SQL and report risk')
     .requiredOption('--file <path>', 'Migration SQL file to analyze')
     .option('--format <format>', 'Output format: text or json', 'text')
-    .action((options: DdlRiskOptions) => {
+    .action((options: DdlMigrationInfoOptions) => {
       const result = runDdlMigrationInfo(options);
       process.stdout.write(result);
     });
-
-  ddl
-    .command('risk')
-    .description('Analyze a migration SQL file and report destructive and operational risks')
-    .requiredOption('--file <path>', 'Migration SQL file to analyze')
-    .option('--format <format>', 'Output format: text or json', 'text')
-    .action((options: DdlRiskOptions) => {
-      const result = runDdlRisk(options);
-      process.stdout.write(result);
-    });
-
-  ddl
-    .command('diff')
-    .description('Compare two DDL snapshots and produce migration SQL plus risk information')
-    .requiredOption('--from <path>', 'Current or old DDL snapshot')
-    .requiredOption('--to <path>', 'Desired or new DDL snapshot')
-    .option('--out <path>', 'Write generated migration SQL to this file')
-    .option('--dry-run', 'Preview generated migration SQL without writing --out', false)
-    .option('--format <format>', 'Output format: text or json', 'text')
-    .action((options: DdlDiffOptions) => {
-      const result = runDdlDiff(options);
-      process.stdout.write(result);
-    });
-}
-
-export function runDdlRisk(options: DdlRiskOptions): string {
-  return runDdlMigrationInfo(options, { commandKind: 'ddl-risk', title: 'Migration SQL risks' });
 }
 
 export function runDdlMigrationInfo(
-  options: DdlRiskOptions,
+  options: DdlMigrationInfoOptions,
   renderOptions: { commandKind?: string; title?: string } = {}
 ): string {
   const filePath = requirePath(options.file, '--file');
@@ -96,12 +69,8 @@ export function runDdlMigrationInfo(
   return `${lines.join('\n')}\n`;
 }
 
-export function runDdlDiff(options: DdlDiffOptions): string {
-  return runDdlMigrationGenerate(options, { commandKind: 'ddl-diff', title: 'DDL diff' });
-}
-
 export function runDdlMigrationGenerate(
-  options: DdlDiffOptions,
+  options: DdlMigrationGenerateOptions,
   renderOptions: { commandKind?: string; title?: string } = {}
 ): string {
   const fromPath = requirePath(options.from, '--from');

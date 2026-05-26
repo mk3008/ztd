@@ -108,6 +108,7 @@ export interface FeatureQueryMetadataRefreshResult {
   queryName: string;
   sqlFile: string;
   boundaryFile: string;
+  metadataFile: string;
   dryRun: boolean;
   changed: boolean;
 }
@@ -189,6 +190,9 @@ interface ResolvedQueryTestMetadata {
   inferred: boolean;
 }
 
+/**
+ * Registers feature, query, metadata-refresh, and generated test scaffold commands.
+ */
 export function registerFeatureCommand(program: Command): void {
   const feature = program.command('feature').description('Scaffold editable feature-local SQL boundaries');
   const query = feature.command('query').description('Add query boundaries to an existing feature');
@@ -230,7 +234,7 @@ export function registerFeatureCommand(program: Command): void {
     .option('--feature <name>', 'Resolve target as src/features/<feature>')
     .option('--boundary-dir <path>', 'Explicit boundary directory')
     .option('--root-dir <path>', 'Project root directory', '.')
-    .option('--dry-run', 'Print the refresh result without writing boundary.ts', false)
+    .option('--dry-run', 'Print the refresh result without writing generated query metadata', false)
     .option('--format <format>', 'Output format: text or json', 'text')
     .action((options: FeatureQueryMetadataRefreshOptions) => {
       const result = runFeatureQueryMetadataRefresh(options);
@@ -295,6 +299,9 @@ export function registerFeatureCommand(program: Command): void {
     });
 }
 
+/**
+ * Scaffolds an editable RFBA-style feature boundary from DDL and query metadata.
+ */
 export function runFeatureScaffold(options: FeatureScaffoldOptions): FeatureScaffoldResult {
   const rootDir = path.resolve(options.rootDir ?? '.');
   const action = normalizeFeatureAction(options.action);
@@ -316,6 +323,9 @@ export function runFeatureScaffold(options: FeatureScaffoldOptions): FeatureScaf
   };
 }
 
+/**
+ * Adds a query boundary to an existing feature and generates its metadata.
+ */
 export function runFeatureQueryScaffold(options: FeatureQueryScaffoldOptions): FeatureScaffoldResult {
   const rootDir = path.resolve(options.rootDir ?? '.');
   const action = normalizeFeatureAction(options.action);
@@ -349,6 +359,9 @@ export function runFeatureQueryScaffold(options: FeatureQueryScaffoldOptions): F
   };
 }
 
+/**
+ * Refreshes the generated query metadata file after a SQL-only edit.
+ */
 export function runFeatureQueryMetadataRefresh(options: FeatureQueryMetadataRefreshOptions): FeatureQueryMetadataRefreshResult {
   const rootDir = path.resolve(options.rootDir ?? '.');
   const boundaryDir = resolveExplicitFeatureBoundaryDir(rootDir, options.feature, options.boundaryDir, 'feature query refresh');
@@ -357,6 +370,7 @@ export function runFeatureQueryMetadataRefresh(options: FeatureQueryMetadataRefr
   const queryDir = path.join(boundaryDir, 'queries', queryName);
   const sqlPath = path.join(queryDir, `${queryName}.sql`);
   const boundaryPath = path.join(queryDir, 'boundary.ts');
+  const metadataPath = path.join(queryDir, 'generated', 'query.meta.ts');
   if (!existsSync(sqlPath)) {
     throw invalidCliInputError(
       'ASHIBA_FEATURE_QUERY_SQL_NOT_FOUND',
@@ -376,11 +390,12 @@ export function runFeatureQueryMetadataRefresh(options: FeatureQueryMetadataRefr
 
   const sql = readFileSync(sqlPath, 'utf8');
   const queryModel = buildFeatureQueryModel(sql, rootDir);
-  const boundarySource = readFileSync(boundaryPath, 'utf8');
-  const refreshedSource = replaceQueryModelObject(boundarySource, queryModel);
-  const changed = refreshedSource !== boundarySource;
+  const refreshedSource = renderQueryMetadata(queryModel);
+  const existingSource = existsSync(metadataPath) ? readFileSync(metadataPath, 'utf8') : '';
+  const changed = refreshedSource !== existingSource;
   if (!options.dryRun && changed) {
-    writeFileSync(boundaryPath, refreshedSource, 'utf8');
+    mkdirSync(path.dirname(metadataPath), { recursive: true });
+    writeFileSync(metadataPath, refreshedSource, 'utf8');
   }
 
   return {
@@ -389,11 +404,15 @@ export function runFeatureQueryMetadataRefresh(options: FeatureQueryMetadataRefr
     queryName,
     sqlFile: toProjectPath(rootDir, sqlPath),
     boundaryFile: toProjectPath(rootDir, boundaryPath),
+    metadataFile: toProjectPath(rootDir, metadataPath),
     dryRun: options.dryRun === true,
     changed,
   };
 }
 
+/**
+ * Scaffolds mapping and logic test files for existing feature queries.
+ */
 export function runFeatureTestsScaffold(options: FeatureTestsScaffoldOptions): {
   rootDir: string;
   dryRun: boolean;
@@ -492,6 +511,9 @@ export function runFeatureTestsScaffold(options: FeatureTestsScaffoldOptions): {
   return { rootDir, dryRun: options.dryRun === true, outputs };
 }
 
+/**
+ * Checks generated feature test coverage against discovered query metadata.
+ */
 export function runFeatureTestsCheck(options: FeatureTestsCheckOptions = {}): FeatureTestsCheckResult {
   const rootDir = path.resolve(options.rootDir ?? '.');
   const featureBoundaries = discoverFeatureBoundaries(rootDir, options.feature, options.boundaryDir);
@@ -586,6 +608,9 @@ export function runFeatureTestsCheck(options: FeatureTestsCheckOptions = {}): Fe
   };
 }
 
+/**
+ * Checks generated mapper tests for drift against DDL-derived mapping expectations.
+ */
 export function runFeatureGeneratedMapperCheck(options: FeatureGeneratedMapperCheckOptions = {}): FeatureGeneratedMapperCheckResult {
   const rootDir = path.resolve(options.rootDir ?? '.');
   const featureBoundaries = discoverFeatureBoundaries(rootDir, options.feature, options.boundaryDir);
@@ -996,18 +1021,26 @@ function buildQueryFiles(
 ): GeneratedFile[] {
   const queryDir = `${boundary}/queries/${queryName}`;
   const actionPlan = buildActionPlan(action, table, primaryKeyColumn);
+  const sql = renderActionSql(actionPlan, table, primaryKeyColumn);
   return [
     ...buildSharedFiles(),
     { relativePath: queryDir, kind: 'directory' },
     {
       relativePath: `${queryDir}/${queryName}.sql`,
       kind: 'file',
-      contents: renderActionSql(actionPlan, table, primaryKeyColumn),
+      contents: sql,
     },
     {
       relativePath: `${queryDir}/boundary.ts`,
       kind: 'file',
       contents: renderQueryBoundary(rootDir, queryName, actionPlan, table, primaryKeyColumn),
+    },
+    { relativePath: `${queryDir}/generated`, kind: 'directory' },
+    {
+      relativePath: `${queryDir}/generated/query.meta.ts`,
+      kind: 'file',
+      contents: renderQueryMetadata(buildFeatureQueryModel(sql, rootDir)),
+      overwrite: true,
     },
     { relativePath: `${queryDir}/tests`, kind: 'directory' },
     { relativePath: `${queryDir}/tests/cases`, kind: 'directory' },
@@ -1062,7 +1095,7 @@ function buildSharedFiles(): GeneratedFile[] {
       contents: [
         'export type FeatureQueryModel = {',
         '  analysis: {',
-        "    astParse: 'ok' | 'failed';",
+        "    astParse: 'ok';",
         "    statementKind: 'select' | 'insert' | 'update' | 'delete' | 'unknown';",
         "    rootQueryShape?: 'simple-select' | 'compound-select' | 'values' | 'non-select' | 'unknown';",
         '    hasTopLevelOrderBy: boolean;',
@@ -1070,8 +1103,6 @@ function buildSharedFiles(): GeneratedFile[] {
         '  };',
         '  bindings?: {',
         '    postgres?: { sourceHash?: string; sql: string; orderedNames: readonly string[] };',
-        '    mysql2?: { sourceHash?: string; sql: string; orderedNames: readonly string[] };',
-        '    mssql?: { sourceHash?: string; sql: string; orderedNames: readonly string[] };',
         '  };',
         '};',
         '',
@@ -1636,7 +1667,7 @@ function sampleFieldValue(field: RenderField): unknown {
 }
 
 function renderQueryBoundary(
-  rootDir: string,
+  _rootDir: string,
   queryName: string,
   plan: ReturnType<typeof buildActionPlan>,
   table: DdlTable,
@@ -1654,14 +1685,13 @@ function renderQueryBoundary(
         '  }',
         '  return row;',
       ].join('\n  ');
-  const sql = renderActionSql(plan, table, primaryKeyColumn);
-  const queryModel = buildFeatureQueryModel(sql, rootDir);
   return [
     "import { dirname } from 'node:path';",
     "import { fileURLToPath } from 'node:url';",
     '',
     `import type { FeatureQueryExecutor } from '${FEATURE_SHARED_EXECUTOR_IMPORT_PATH}';`,
     `import { loadSqlResource } from '${FEATURE_SHARED_LOAD_SQL_RESOURCE_IMPORT_PATH}';`,
+    "import { queryModel } from './generated/query.meta.js';",
     '',
     'const currentDir = dirname(fileURLToPath(import.meta.url));',
     `export const ${camel}Sql = loadSqlResource(currentDir, '${queryName}.sql');`,
@@ -1670,7 +1700,7 @@ function renderQueryBoundary(
     `  path: '${queryName}.sql',`,
     `  sqlPath: '${queryName}.sql',`,
     `  sql: ${camel}Sql,`,
-    `  queryModel: ${JSON.stringify(queryModel, null, 2).replace(/\n/g, '\n  ')},`,
+    '  queryModel,',
     '  sssqlCompression: true,',
     '  metadata: {',
     `    sqlId: '${queryName}',`,
@@ -1698,18 +1728,23 @@ function renderQueryBoundary(
   ].join('\n');
 }
 
+function renderQueryMetadata(queryModel: ReturnType<typeof buildFeatureQueryModel>): string {
+  return [
+    '// Generated by Ashiba. Do not edit by hand.',
+    '// Refresh with `ashiba feature query refresh` after SQL-only edits.',
+    `export const queryModel = ${JSON.stringify(queryModel, null, 2)} as const;`,
+    '',
+  ].join('\n');
+}
+
 function buildFeatureQueryModel(sql: string, rootDir: string): {
   analysis: ReturnType<typeof analyzeQueryModel>;
   bindings: {
     postgres: QueryModelBindings['postgres'];
-    mysql2: { sourceHash: string; sql: string; orderedNames: string[] };
-    mssql: { sourceHash: string; sql: string; orderedNames: string[] };
   };
 } {
   const sourceHash = hashSql(sql);
   const postgres = compileNamedParameters(sql, { placeholderStyle: 'postgres' });
-  const mysql2 = compileNamedParameters(sql, { placeholderStyle: 'question' });
-  const mssql = compileNamedParameters(sql, { placeholderStyle: 'named-at' });
   const resultColumnContracts = buildQueryResultColumnContracts(sql, rootDir);
   const parameters = [...new Set(postgres.orderedNames)];
   const analysis = analyzeQueryModel(sql, parameters, resultColumnContracts, { sssqlCompression: true });
@@ -1722,69 +1757,8 @@ function buildFeatureQueryModel(sql: string, rootDir: string): {
         ...buildPostgresSafeSortBindingMetadata(sql, analysis.safeSort),
         ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.sssqlCompression),
       },
-      mysql2: { sourceHash, ...mysql2 },
-      mssql: { sourceHash, ...mssql },
     },
   };
-}
-
-function replaceQueryModelObject(source: string, queryModel: ReturnType<typeof buildFeatureQueryModel>): string {
-  const marker = '  queryModel:';
-  const markerIndex = source.indexOf(marker);
-  if (markerIndex < 0) {
-    throw invalidCliInputError(
-      'ASHIBA_FEATURE_QUERY_MODEL_NOT_FOUND',
-      'queryModel was not found in the query boundary.',
-      'Regenerate the query boundary or add queryModel before running feature query refresh.',
-    );
-  }
-  const objectStart = source.indexOf('{', markerIndex + marker.length);
-  if (objectStart < 0) {
-    throw invalidCliInputError(
-      'ASHIBA_FEATURE_QUERY_MODEL_INVALID',
-      'queryModel in the query boundary is not an object literal.',
-      'Regenerate the query boundary or repair queryModel before running feature query refresh.',
-    );
-  }
-  const objectEnd = findMatchingObjectBrace(source, objectStart);
-  if (objectEnd < 0) {
-    throw invalidCliInputError(
-      'ASHIBA_FEATURE_QUERY_MODEL_INVALID',
-      'queryModel object in the query boundary is not balanced.',
-      'Regenerate the query boundary or repair queryModel before running feature query refresh.',
-    );
-  }
-  const replacement = JSON.stringify(queryModel, null, 2).replace(/\n/g, '\n  ');
-  return `${source.slice(0, objectStart)}${replacement}${source.slice(objectEnd + 1)}`;
-}
-
-function findMatchingObjectBrace(source: string, start: number): number {
-  let depth = 0;
-  let quote: '"' | "'" | undefined;
-  let escaped = false;
-  for (let index = start; index < source.length; index += 1) {
-    const char = source[index] ?? '';
-    if (quote) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === '\\') {
-        escaped = true;
-      } else if (char === quote) {
-        quote = undefined;
-      }
-      continue;
-    }
-    if (char === '"' || char === "'") {
-      quote = char;
-      continue;
-    }
-    if (char === '{') depth += 1;
-    if (char === '}') {
-      depth -= 1;
-      if (depth === 0) return index;
-    }
-  }
-  return -1;
 }
 
 function renderInterfaceBody(columns: DdlColumn[]): string {
@@ -2283,6 +2257,7 @@ function formatFeatureQueryMetadataRefresh(result: FeatureQueryMetadataRefreshRe
     '',
     `- sql: ${result.sqlFile}`,
     `- boundary: ${result.boundaryFile}`,
+    `- metadata: ${result.metadataFile}`,
     `- changed: ${result.changed ? 'yes' : 'no'}`,
     `- dry-run: ${result.dryRun ? 'true' : 'false'}`,
     '',

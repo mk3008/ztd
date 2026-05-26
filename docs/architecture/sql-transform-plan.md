@@ -65,9 +65,10 @@ Position: extension capability. It is not standard core CLI behavior because sca
 Responsibilities:
 
 - SSSQL optional condition listing.
-- SSSQL optional condition scaffold.
-- Refresh existing scaffolded branches.
+- Add SSSQL optional condition branches.
+- Refresh existing optional branches and generated query metadata.
 - Remove supported optional branches.
+- Allow development-time authoring inputs, including EXISTS subquery text, only when the output is written back to a SQL file.
 - Preserve comments and SQL readability where possible.
 - Preserve migration-source behavior unless it conflicts with Ashiba's runtime boundaries.
 
@@ -79,7 +80,7 @@ Non-responsibilities:
 Existing `ztd-cli` references to inspect:
 
 - `query sssql list`
-- `query sssql scaffold`
+- `query sssql add`
 - `query sssql refresh`
 - `query sssql remove`
 - `packages/core/src/transformers/SSSQLFilterBuilder.ts`

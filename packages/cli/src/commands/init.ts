@@ -218,7 +218,7 @@ function readDbEnv(name: string, fallback: string): string {
     relativePath: 'src/features/_shared/featureQueryExecutor.ts',
     contents: `export type FeatureQueryModel = {
   analysis: {
-    astParse: 'ok' | 'failed';
+    astParse: 'ok';
     statementKind: 'select' | 'insert' | 'update' | 'delete' | 'unknown';
     rootQueryShape?: 'simple-select' | 'compound-select' | 'values' | 'non-select' | 'unknown';
     hasTopLevelOrderBy: boolean;
@@ -226,8 +226,6 @@ function readDbEnv(name: string, fallback: string): string {
   };
   bindings?: {
     postgres?: { sourceHash?: string; sql: string; orderedNames: readonly string[] };
-    mysql2?: { sourceHash?: string; sql: string; orderedNames: readonly string[] };
-    mssql?: { sourceHash?: string; sql: string; orderedNames: readonly string[] };
   };
 };
 

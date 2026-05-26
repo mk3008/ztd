@@ -41,8 +41,8 @@ Do not migrate watch-mode automatic regeneration for DDL-derived schema model ar
 
 Migrate and reshape:
 
-- `ddl diff`
-- `ddl risk`
+- `ddl migration generate`
+- `ddl migration info`
 - migration DDL generation from two explicit DDL inputs
 - migration risk/info output from two explicit DDL inputs
 
@@ -130,7 +130,7 @@ Classify terms before renaming:
 | `ztd feature query scaffold` | `ashiba feature query scaffold` |
 | `ztd feature tests scaffold` | `ashiba feature tests scaffold` |
 | `ztd feature generated-mapper check` | `ashiba feature generated-mapper check` |
-| `ztd ddl diff` | `ashiba ddl diff` |
+| `ztd ddl diff` | `ashiba ddl migration generate` |
 | `ztd ddl risk` | `ashiba ddl migration info` |
 | `ztd query uses table` | `ashiba query uses table` |
 | `ztd query uses column` | `ashiba query uses column` |
@@ -164,7 +164,7 @@ Classify terms before renaming:
 - Public v1 query analysis migrates the full `ztd-cli` query analysis command set.
 - Unused named parameters are errors.
 - Initial database target is PostgreSQL; MySQL and SQL Server are target families for later driver adapters.
-- Legacy PostgreSQL `ddl pull` is implemented as the `@ashiba/ddl-pull-pg-dump` helper package because of `pg_dump` references, not as an initial migration query generation responsibility or `pg` driver adapter responsibility. The package name is not generic because it does not cover MySQL or SQL Server DDL pull.
+- PostgreSQL `ddl pull` through `pg_dump` is implemented as the `@ashiba/ddl-pull-pg-dump` helper package because of `pg_dump` references, not as an initial migration query generation responsibility or `pg` driver adapter responsibility. The package name is not generic because it does not cover MySQL or SQL Server DDL pull.
 - Keep `sqlgrep` as the capability name.
 - `rawsql-ts` core AST analysis remains an allowed npm dependency for Ashiba tooling packages.
 

@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import type { Command } from 'commander';
 import {
   buildObservedSqlMatchReport,
@@ -7,11 +8,11 @@ import {
   buildQuerySliceReport,
   buildQueryStructureReport,
   applyQueryPatch,
+  addSssql,
   listSssqlBranches,
   normalizeSssqlBranchKind,
   refreshSssql,
   removeSssql,
-  scaffoldSssql,
   buildQueryUsageReport,
   formatObservedSqlMatchReport,
   formatQueryLintReport,
@@ -21,6 +22,13 @@ import {
 } from '../sqlgrep/index.js';
 import { invalidCliInputError, requiredCliValueError } from '../errors.js';
 import type { SssqlRemoveSpec, SssqlScaffoldSpec } from 'rawsql-ts';
+import { compileNamedParameters } from '../parameter-metadata.js';
+import {
+  analyzeQueryModel,
+  buildPostgresOptionalConditionCompressionBindingMetadata,
+  buildPostgresSafeSortBindingMetadata,
+  buildQueryResultColumnContracts,
+} from './model-gen.js';
 
 export interface QueryUsesOptions {
   format?: 'text' | 'json';
@@ -84,8 +92,13 @@ export interface QuerySssqlOptions {
   anchorColumn?: string;
   all?: boolean;
   target?: string;
+  rootDir?: string;
+  ddlDir?: string;
 }
 
+/**
+ * Registers SQL inspection, patching, SSSQL, and usage-analysis commands.
+ */
 export function registerQueryCommand(program: Command): void {
   const query = program
     .command('query')
@@ -173,8 +186,8 @@ export function registerQueryCommand(program: Command): void {
     });
 
   sssql
-    .command('scaffold <sqlFile>')
-    .description('Generate SSSQL optional filter scaffolds near the closest source query')
+    .command('add <sqlFile>')
+    .description('Add SSSQL optional filter branches near the closest source query')
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--filter <name>', 'Target column for scalar scaffold, or primary anchor column for EXISTS/NOT EXISTS')
     .option('--parameter <name>', 'Explicit parameter name for structured SSSQL scaffold')
@@ -183,10 +196,12 @@ export function registerQueryCommand(program: Command): void {
     .option('--query <sql>', 'Subquery SQL for EXISTS/NOT EXISTS scaffold')
     .option('--query-file <path>', 'Read subquery SQL for EXISTS/NOT EXISTS scaffold from a file')
     .option('--anchor-column <names>', 'Comma-separated anchor columns used by $c0, $c1 placeholders')
+    .option('--root-dir <path>', 'Project root for query metadata refresh', process.cwd())
+    .option('--ddl-dir <path>', 'Optional DDL directory for static row type hints')
     .option('--preview', 'Emit a unified diff without writing files')
     .option('--out <path>', 'Write output to file')
     .action((sqlFile: string, options: QuerySssqlOptions) => {
-      process.stdout.write(runQuerySssqlScaffold(sqlFile, options));
+      process.stdout.write(runQuerySssqlAdd(sqlFile, options));
     });
 
   sssql
@@ -250,11 +265,17 @@ export function registerQueryCommand(program: Command): void {
     });
 }
 
+/**
+ * Builds a formatted structural outline for a visible SQL file.
+ */
 export function runQueryStructure(sqlFile: string, options: QueryStructureOptions = {}): string {
   const format = normalizeStructureFormat(options.format ?? 'text', true);
   return formatQueryStructureReport(buildQueryStructureReport(sqlFile, 'ashiba query outline'), format);
 }
 
+/**
+ * Builds a formatted query slice report for a selected CTE or dependency path.
+ */
 export function runQuerySlice(sqlFile: string, options: QuerySliceOptions): string {
   return buildQuerySliceReport(sqlFile, {
     cte: options.cte,
@@ -263,6 +284,9 @@ export function runQuerySlice(sqlFile: string, options: QuerySliceOptions): stri
   }).sql;
 }
 
+/**
+ * Builds a formatted query pipeline plan from a visible SQL file.
+ */
 export function runQueryPlan(sqlFile: string, options: QueryPlanOptions = {}): string {
   const format = normalizeFormat(options.format ?? 'text');
   const plan = buildQueryPipelinePlan(sqlFile, {
@@ -272,6 +296,9 @@ export function runQueryPlan(sqlFile: string, options: QueryPlanOptions = {}): s
   return formatQueryPipelinePlan(plan, format);
 }
 
+/**
+ * Runs query lint rules and formats the resulting report.
+ */
 export function runQueryLint(sqlFile: string, options: QueryLintOptions = {}): string {
   const format = normalizeFormat(options.format ?? 'text');
   const report = buildQueryLintReport(sqlFile, {
@@ -281,6 +308,9 @@ export function runQueryLint(sqlFile: string, options: QueryLintOptions = {}): s
   return formatQueryLintReport(report, format);
 }
 
+/**
+ * Applies a supported development-time query patch and formats the patch report.
+ */
 export function runQueryPatchApply(sqlFile: string, options: QueryPatchApplyOptions): string {
   if (!options.cte) {
     throw requiredCliValueError('--cte');
@@ -324,6 +354,9 @@ export function runQueryPatchApply(sqlFile: string, options: QueryPatchApplyOpti
   ].join('\n');
 }
 
+/**
+ * Lists supported SSSQL optional-condition branches in a visible SQL file.
+ */
 export function runQuerySssqlList(sqlFile: string, options: QuerySssqlOptions = {}): string {
   const format = normalizeFormat(options.format ?? 'text');
   const branches = listSssqlBranches(sqlFile);
@@ -336,32 +369,49 @@ export function runQuerySssqlList(sqlFile: string, options: QuerySssqlOptions = 
   return `${branches.map((branch, index) => `${index + 1}. parameter: ${branch.parameterName}\n   kind: ${branch.kind}\n   target: ${branch.target ?? '(none)'}`).join('\n')}\n`;
 }
 
-export function runQuerySssqlScaffold(sqlFile: string, options: QuerySssqlOptions = {}): string {
-  const report = scaffoldSssql(sqlFile, {
+/**
+ * Adds SSSQL optional-condition branches and formats the CLI report.
+ */
+export function runQuerySssqlAdd(sqlFile: string, options: QuerySssqlOptions = {}): string {
+  const report = addSssql(sqlFile, {
     out: options.out,
     preview: Boolean(options.preview),
     spec: buildSssqlScaffoldSpec(options),
-    filters: buildLegacySssqlFilters(options),
+    filters: buildSssqlFilters(options),
   });
+  refreshSssqlQueryMetadata(report, options);
   return formatSssqlRewriteReport(report, options.format ?? 'text');
 }
 
+/**
+ * Refreshes existing SSSQL optional-condition branches and generated query metadata.
+ */
 export function runQuerySssqlRefresh(sqlFile: string, options: QuerySssqlOptions = {}): string {
-  return formatSssqlRewriteReport(refreshSssql(sqlFile, {
+  const report = refreshSssql(sqlFile, {
     out: options.out,
     preview: Boolean(options.preview),
-  }), options.format ?? 'text');
+  });
+  refreshSssqlQueryMetadata(report, options);
+  return formatSssqlRewriteReport(report, options.format ?? 'text');
 }
 
+/**
+ * Removes SSSQL optional-condition branches and refreshes generated query metadata.
+ */
 export function runQuerySssqlRemove(sqlFile: string, options: QuerySssqlOptions = {}): string {
-  return formatSssqlRewriteReport(removeSssql(sqlFile, {
+  const report = removeSssql(sqlFile, {
     out: options.out,
     preview: Boolean(options.preview),
     all: Boolean(options.all),
     spec: Boolean(options.all) ? undefined : buildSssqlRemoveSpec(options),
-  }), options.format ?? 'text');
+  });
+  refreshSssqlQueryMetadata(report, options);
+  return formatSssqlRewriteReport(report, options.format ?? 'text');
 }
 
+/**
+ * Finds query usages for a table or column target and formats the report.
+ */
 export function runQueryUses(kind: 'table' | 'column', target: string, options: QueryUsesOptions): string {
   const format = normalizeFormat(options.format ?? 'text');
   const view = normalizeView(options.view ?? 'impact');
@@ -381,6 +431,9 @@ export function runQueryUses(kind: 'table' | 'column', target: string, options: 
   return formatQueryUsageReport(report, format);
 }
 
+/**
+ * Matches observed runtime SQL against known SQL catalog assets.
+ */
 export function runQueryMatchObserved(options: QueryMatchObservedOptions): string {
   const format = normalizeFormat(options.format ?? 'text');
   const report = buildObservedSqlMatchReport({
@@ -485,7 +538,7 @@ function normalizeLintRules(value: string | undefined): Array<'join-direction'> 
   return values as Array<'join-direction'>;
 }
 
-function buildLegacySssqlFilters(options: QuerySssqlOptions): Record<string, null> | undefined {
+function buildSssqlFilters(options: QuerySssqlOptions): Record<string, null> | undefined {
   if (buildSssqlScaffoldSpec(options)) {
     return undefined;
   }
@@ -520,6 +573,41 @@ function buildSssqlRemoveSpec(options: QuerySssqlOptions): SssqlRemoveSpec {
     operator: options.operator as SssqlRemoveSpec['operator'],
     target: options.target,
   };
+}
+
+function refreshSssqlQueryMetadata(
+  report: { output_file: string; preview: boolean },
+  options: QuerySssqlOptions,
+): void {
+  if (report.preview) {
+    return;
+  }
+  const rootDir = path.resolve(options.rootDir ?? process.cwd());
+  const sqlPath = path.resolve(report.output_file);
+  const sql = readFileSync(sqlPath, 'utf8');
+  const postgres = compileNamedParameters(sql, { placeholderStyle: 'postgres' });
+  const resultColumnContracts = buildQueryResultColumnContracts(sql, rootDir, options.ddlDir);
+  const parameters = [...new Set(postgres.orderedNames)];
+  const analysis = analyzeQueryModel(sql, parameters, resultColumnContracts, { sssqlCompression: true });
+  const queryModel = {
+    analysis,
+    bindings: {
+      postgres: {
+        sourceHash: analysis.sourceHash,
+        ...postgres,
+        ...buildPostgresSafeSortBindingMetadata(sql, analysis.safeSort),
+        ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.sssqlCompression),
+      },
+    },
+  };
+  const metadataPath = path.join(path.dirname(sqlPath), 'generated', 'query.meta.ts');
+  mkdirSync(path.dirname(metadataPath), { recursive: true });
+  writeFileSync(metadataPath, [
+    '// Generated by Ashiba. Do not edit by hand.',
+    '// Refresh with `ashiba query sssql add|refresh|remove` or `ashiba feature query refresh` after SQL-only edits.',
+    `export const queryModel = ${JSON.stringify(queryModel, null, 2)} as const;`,
+    '',
+  ].join('\n'), 'utf8');
 }
 
 function resolveSssqlSubqueryInput(sqlText: string | undefined, sqlFile: string | undefined): string | undefined {

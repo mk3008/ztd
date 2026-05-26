@@ -62,9 +62,7 @@ export function buildQueryUsageReport(params: BuildQueryUsageReportParams): Quer
   const rootDir = path.resolve(params.rootDir ?? process.cwd());
   const specsDir = params.specsDir ? path.resolve(rootDir, params.specsDir) : rootDir;
   const sqlRoot = params.sqlRoot ? path.resolve(rootDir, params.sqlRoot) : null;
-  const legacySqlRoot = path.resolve(rootDir, 'src', 'sql');
   const normalizedSqlRoot = sqlRoot ? normalizePath(path.relative(rootDir, sqlRoot) || '.') : null;
-  const normalizedLegacySqlRoot = normalizePath(path.relative(rootDir, legacySqlRoot) || '.');
   const view = params.view ?? 'impact';
   const parsedTarget = parseQueryTarget({
     kind: params.kind,
@@ -155,7 +153,6 @@ Hint: run "ashiba init" or place feature-local specs under your project tree. Us
       const resolvedSqlFile = resolveCatalogSqlFile({
         rootDir,
         sqlRoot,
-        legacySqlRoot,
         specFilePath: loaded.filePath,
         sqlFile,
       });
@@ -166,7 +163,6 @@ Hint: run "ashiba init" or place feature-local specs under your project tree. Us
         const sqlRootCandidate = sqlRoot
           ? normalizePath(path.relative(rootDir, path.resolve(sqlRoot, sqlFile)))
           : null;
-        const legacySqlRootCandidate = normalizePath(path.relative(rootDir, path.resolve(legacySqlRoot, sqlFile)));
         warnings.push({
           catalog_id: catalogId,
           sql_file: specRelativeCandidate,
@@ -178,7 +174,6 @@ Hint: run "ashiba init" or place feature-local specs under your project tree. Us
             ...(sqlRootCandidate && normalizedSqlRoot
               ? [`Tried --sql-root (${normalizedSqlRoot}): ${sqlRootCandidate}`]
               : []),
-            `Tried legacy shared root (${normalizedLegacySqlRoot}): ${legacySqlRootCandidate}`,
             `Hint: prefer feature-local spec-relative sqlFile values. Use --sql-root only when your specs intentionally point into a shared SQL root.`,
           ].join('\n'),
         });
@@ -468,7 +463,6 @@ function normalizePath(input: string): string {
 function resolveCatalogSqlFile(params: {
   rootDir: string;
   sqlRoot: string | null;
-  legacySqlRoot: string;
   specFilePath: string;
   sqlFile: string;
 }): string | null {
@@ -484,18 +478,12 @@ function resolveCatalogSqlFile(params: {
     return projectRelativeCandidate;
   }
 
-  // Preserve the older shared-root escape hatch when callers opt into --sql-root explicitly.
+  // Allow a shared root only when callers opt into --sql-root explicitly.
   if (params.sqlRoot) {
     const sharedRootCandidate = path.resolve(params.sqlRoot, params.sqlFile);
     if (existsSync(sharedRootCandidate)) {
       return sharedRootCandidate;
     }
-  }
-
-  // Keep older src/sql-based projects working while spec-relative layouts become the preferred contract.
-  const legacySharedRootCandidate = path.resolve(params.legacySqlRoot, params.sqlFile);
-  if (existsSync(legacySharedRootCandidate)) {
-    return legacySharedRootCandidate;
   }
 
   return null;

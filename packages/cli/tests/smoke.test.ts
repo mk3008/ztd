@@ -7,13 +7,13 @@ import path from 'node:path';
 import { runInit } from '../src/commands/init.js';
 import { runCheckContract, formatCheckContractResult } from '../src/commands/check-contract.js';
 import { createDefaultConfig, formatDefaultConfig } from '../src/commands/config.js';
-import { runDdlDiff, runDdlMigrationGenerate, runDdlMigrationInfo, runDdlRisk } from '../src/commands/ddl.js';
+import { runDdlMigrationGenerate, runDdlMigrationInfo } from '../src/commands/ddl.js';
 import { COMMANDS, formatDescribe } from '../src/commands/describe.js';
 import { runFeatureGeneratedMapperCheck, runFeatureQueryMetadataRefresh, runFeatureQueryScaffold, runFeatureScaffold, runFeatureTestsCheck, runFeatureTestsScaffold } from '../src/commands/feature.js';
 import { runLint } from '../src/commands/lint.js';
 import { runModelGen } from '../src/commands/model-gen.js';
 import { runPerfInit, runPerfReportDiff, runPerfRun } from '../src/commands/perf.js';
-import { runQueryLint, runQueryMatchObserved, runQueryPatchApply, runQueryPlan, runQuerySlice, runQuerySssqlList, runQuerySssqlScaffold, runQueryStructure, runQueryUses } from '../src/commands/query.js';
+import { runQueryLint, runQueryMatchObserved, runQueryPatchApply, runQueryPlan, runQuerySlice, runQuerySssqlAdd, runQuerySssqlList, runQueryStructure, runQueryUses } from '../src/commands/query.js';
 import { runRfbaInspect } from '../src/commands/rfba.js';
 import { runTestEvidenceCollect, runTestEvidenceDiff, runTestEvidenceRender } from '../src/commands/test-evidence.js';
 import { buildConfigProgram } from '../src/config-bin.js';
@@ -39,8 +39,8 @@ describe('@ashiba/cli smoke', () => {
 
   test('formats structured CLI errors for AI output', () => {
     try {
-      runDdlDiff({ to: 'new.sql' });
-      throw new Error('expected runDdlDiff to fail');
+      runDdlMigrationGenerate({ to: 'new.sql' });
+      throw new Error('expected runDdlMigrationGenerate to fail');
     } catch (error) {
       const formatted = formatAshibaError(error, 'ai').data;
       const humanText = formatAshibaError(error, 'human').text;
@@ -71,10 +71,11 @@ describe('@ashiba/cli smoke', () => {
     const rendered = formatDescribe(COMMANDS);
 
     expect(commandNames).toEqual(expect.arrayContaining([
-      'ddl risk',
-      'ddl diff',
+      'ddl migration generate',
+      'ddl migration info',
       'query outline',
       'query graph',
+      'query sssql add',
       'query sssql refresh',
       'feature query scaffold',
       'feature tests scaffold',
@@ -208,7 +209,7 @@ describe('@ashiba/cli smoke', () => {
       const filePath = path.join(rootDir, 'migration.sql');
       writeFileSync(filePath, 'DROP TABLE public.users CASCADE;', 'utf8');
 
-      const output = runDdlRisk({ file: filePath });
+      const output = runDdlMigrationInfo({ file: filePath });
 
       expect(output).toContain('drop_table');
       expect(output).toContain('cascade_drop');
@@ -227,7 +228,7 @@ describe('@ashiba/cli smoke', () => {
       writeFileSync(fromPath, '', 'utf8');
       writeFileSync(toPath, 'CREATE TABLE public.users (id integer not null);', 'utf8');
 
-      const output = runDdlDiff({ from: fromPath, to: toPath, out: outPath });
+      const output = runDdlMigrationGenerate({ from: fromPath, to: toPath, out: outPath });
 
       expect(output).toContain('create table');
       expect(readFileSync(outPath, 'utf8').toLowerCase()).toContain('create table');
@@ -236,7 +237,7 @@ describe('@ashiba/cli smoke', () => {
     }
   });
 
-  test('exposes concept-aligned ddl migration generate and info aliases', () => {
+  test('exposes concept-aligned ddl migration generate and info commands', () => {
     const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-ddl-migration-'));
 
     try {
@@ -352,6 +353,7 @@ describe('@ashiba/cli smoke', () => {
 
       const featureBoundary = readFileSync(path.join(rootDir, 'src/features/users-insert/boundary.ts'), 'utf8');
       const queryBoundary = readFileSync(path.join(rootDir, 'src/features/users-insert/queries/insert-users/boundary.ts'), 'utf8');
+      const queryMeta = readFileSync(path.join(rootDir, 'src/features/users-insert/queries/insert-users/generated/query.meta.ts'), 'utf8');
       const queryZtdTest = readFileSync(path.join(rootDir, 'src/features/users-insert/queries/insert-users/tests/insert-users.boundary.ztd.test.ts'), 'utf8');
       const queryZtdTypes = readFileSync(path.join(rootDir, 'src/features/users-insert/queries/insert-users/tests/boundary-ztd-types.ts'), 'utf8');
       const querySql = readFileSync(path.join(rootDir, 'src/features/users-insert/queries/insert-users/insert-users.sql'), 'utf8');
@@ -374,11 +376,12 @@ describe('@ashiba/cli smoke', () => {
       expect(queryBoundary).toContain('sqlPath');
       expect(queryBoundary).toContain('metadata');
       expect(queryBoundary).toContain('queryModel');
+      expect(queryBoundary).toContain("from './generated/query.meta.js'");
       expect(queryBoundary).toContain('sssqlCompression: true');
-      expect(queryBoundary).toContain('"sssqlCompression"');
-      expect(queryBoundary).toContain('"postgres"');
-      expect(queryBoundary).toContain('"mysql2"');
-      expect(queryBoundary).toContain('"mssql"');
+      expect(queryMeta).toContain('Generated by Ashiba. Do not edit by hand.');
+      expect(queryMeta).toContain('"postgres"');
+      expect(queryMeta).not.toContain('"mysql2"');
+      expect(queryMeta).not.toContain('"mssql"');
       expect(queryZtdTest).toContain("from '#tests/support/ztd/harness.js'");
       expect(queryZtdTypes).toContain("from '#tests/support/ztd/case-types.js'");
       expect(querySql).toContain(':email');
@@ -412,6 +415,7 @@ describe('@ashiba/cli smoke', () => {
       const refresh = runFeatureQueryMetadataRefresh({ rootDir, feature: 'users-list', query: 'list' });
       expect(refresh.changed).toBe(true);
       expect(refresh.boundaryFile).toBe('src/features/users-list/queries/list/boundary.ts');
+      expect(refresh.metadataFile).toBe('src/features/users-list/queries/list/generated/query.meta.ts');
 
       const fresh = runCheckContract({ rootDir, feature: 'users-list' });
       expect(fresh.ok).toBe(true);
@@ -888,6 +892,37 @@ describe('@ashiba/cli smoke', () => {
     }
   });
 
+  test('rejects query model metadata mixed into editable contract files', () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-check-contract-inline-query-model-'));
+
+    try {
+      const queryDir = path.join(rootDir, 'src/features/users/queries/list');
+      mkdirSync(queryDir, { recursive: true });
+      writeFileSync(path.join(queryDir, 'list.sql'), 'select user_id from public.users where email = :email;', 'utf8');
+      writeFileSync(path.join(queryDir, 'list.query.ts'), [
+        'export const queryId = "users.list";',
+        'export const sqlFile = "./list.sql";',
+        'export const queryModel = { analysis: {}, bindings: {} } as const;',
+        'export const querySpec = {',
+        '  id: queryId,',
+        '  sqlFile,',
+        '  parameters: ["email"],',
+        '  analysis: queryModel.analysis,',
+        '} as const;',
+        '',
+      ].join('\n'), 'utf8');
+
+      const result = runCheckContract({ rootDir, scopeDir: 'src/features/users/queries/list' });
+
+      expect(result.ok).toBe(false);
+      expect(result.catalogCheck.checked[0]?.issues).toContain(
+        'queryModel metadata must be stored in generated/query.meta.ts, not mixed into the editable contract file.',
+      );
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
   test('checks stale SSSQL compression query model metadata', () => {
     const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-check-contract-sssql-compression-'));
 
@@ -1045,7 +1080,7 @@ describe('@ashiba/cli smoke', () => {
       expect(result.files[0]?.ddlIssues.map((issue) => issue.code)).toEqual(['ddl-missing-table', 'ddl-missing-column']);
       expect(result.files[0]?.output).toContain('public.accounts');
       expect(result.files[0]?.output).toContain('u.missing_email');
-      expect(result.files[0]?.output).not.toContain('compatibility lexical SQL analysis');
+      expect(result.files[0]?.output).not.toContain('lexical SQL analysis');
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
@@ -1295,6 +1330,7 @@ describe('@ashiba/cli smoke', () => {
       ].join('\n'), 'utf8');
 
       const result = runModelGen({ rootDir, sqlFile: 'src/features/users/queries/list/list.sql', out: 'src/features/users/queries/list/list.query.ts' });
+      const metaPath = path.join(sqlDir, 'generated', 'query.meta.ts');
 
       expect(result.id).toBe('users.list.list');
       expect(result.parameters).toEqual(['email', 'status']);
@@ -1321,12 +1357,27 @@ describe('@ashiba/cli smoke', () => {
         sourceHash: result.analysis.sourceHash,
         orderedNames: ['email', 'status'],
       });
+      expect(result.bindings.mysql2).toMatchObject({
+        sourceHash: result.analysis.sourceHash,
+        orderedNames: ['email', 'status'],
+      });
+      expect(result.bindings.mssql).toMatchObject({
+        sourceHash: result.analysis.sourceHash,
+        orderedNames: ['email', 'status'],
+      });
       expect(result.bindings.postgres.sql).toContain('email = $1 and status = $2');
+      expect(result.bindings.mysql2?.sql).toContain('email = ? and status = ?');
+      expect(result.bindings.mssql?.sql).toContain('email = @email and status = @status');
+      expect(result.metadataOut).toBe('src/features/users/queries/list/generated/query.meta.ts');
       expect(readFileSync(outPath, 'utf8')).toContain('export const querySpec');
-      expect(readFileSync(outPath, 'utf8')).toContain('export const queryModel');
-      expect(readFileSync(outPath, 'utf8')).toContain('bindings:');
+      expect(readFileSync(outPath, 'utf8')).toContain('import { queryModel } from "./generated/query.meta.js";');
+      expect(readFileSync(outPath, 'utf8')).not.toContain('export const queryModel');
       expect(readFileSync(outPath, 'utf8')).toContain('email: unknown');
       expect(readFileSync(outPath, 'utf8')).toContain('user_id: unknown');
+      expect(readFileSync(metaPath, 'utf8')).toContain('Generated by Ashiba model-gen. Do not edit by hand.');
+      expect(readFileSync(metaPath, 'utf8')).toContain('"bindings"');
+      expect(readFileSync(metaPath, 'utf8')).toContain('"mysql2"');
+      expect(readFileSync(metaPath, 'utf8')).toContain('"mssql"');
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
@@ -1366,7 +1417,7 @@ describe('@ashiba/cli smoke', () => {
           parameterName: 'status',
         }],
       });
-      expect(result.contents).toContain('sssqlCompression');
+      expect(result.metadataContents).toContain('sssqlCompression');
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
@@ -1712,8 +1763,8 @@ describe('@ashiba/cli smoke', () => {
           },
         },
       });
-      expect(result.contents).toContain('"hasTopLevelOrderBy": true');
-      expect(result.contents).toContain('"sourceHash": "sha256:');
+      expect(result.metadataContents).toContain('"hasTopLevelOrderBy": true');
+      expect(result.metadataContents).toContain('"sourceHash": "sha256:');
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
@@ -1912,7 +1963,7 @@ describe('@ashiba/cli smoke', () => {
         },
         sortable: {},
       });
-      expect(result.contents).toContain('Wrap the compound query in a subquery');
+      expect(result.metadataContents).toContain('Wrap the compound query in a subquery');
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
@@ -2229,8 +2280,8 @@ describe('@ashiba/cli smoke', () => {
     }
   });
 
-  test('scaffolds and lists SQL-first optional filter branches', () => {
-    const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-query-sssql-'));
+  test('adds and lists SQL-first optional filter branches', () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-query-sssql-add-'));
 
     try {
       const sqlPath = path.join(rootDir, 'users.sql');
@@ -2241,11 +2292,14 @@ describe('@ashiba/cli smoke', () => {
         WHERE u.active = true
       `, 'utf8');
 
-      const scaffold = runQuerySssqlScaffold(sqlPath, { filter: 'status', out: outPath });
+      const add = runQuerySssqlAdd(sqlPath, { filter: 'status', out: outPath });
       const list = runQuerySssqlList(outPath);
 
-      expect(scaffold).toContain('query sssql scaffold');
+      expect(add).toContain('query sssql add');
       expect(readFileSync(outPath, 'utf8').toLowerCase()).toContain(':status is null');
+      const metadata = readFileSync(path.join(rootDir, 'generated', 'query.meta.ts'), 'utf8');
+      expect(metadata).toContain('"sssqlCompression"');
+      expect(metadata).toContain('"parameterName": "status"');
       expect(list).toContain('parameter: status');
     } finally {
       rmSync(rootDir, { recursive: true, force: true });

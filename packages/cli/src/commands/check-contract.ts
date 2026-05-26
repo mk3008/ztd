@@ -67,6 +67,9 @@ export interface CatalogContractCheckResult {
   ok: boolean;
 }
 
+/**
+ * Registers the contract drift check command for feature query boundaries.
+ */
 export function registerCheckContractCommand(program: Command): void {
   program
     .command('check-contract')
@@ -88,6 +91,9 @@ export function registerCheckContractCommand(program: Command): void {
     });
 }
 
+/**
+ * Checks visible SQL, generated query metadata, and query boundary contracts for drift.
+ */
 export function runCheckContract(options: CheckContractOptions = {}): CheckContractResult {
   const rootDir = path.resolve(options.rootDir ?? '.');
   const mapperCheck = runOptionalFeatureGeneratedMapperCheck({
@@ -109,6 +115,9 @@ export function runCheckContract(options: CheckContractOptions = {}): CheckContr
   };
 }
 
+/**
+ * Formats contract drift check results for human-readable CLI output.
+ */
 export function formatCheckContractResult(result: CheckContractResult): string {
   const lines = [`Ashiba contract check: ${result.ok ? 'ok' : 'failed'}`];
   lines.push(`Attainment: ${result.attainment.overall}`);
@@ -388,6 +397,12 @@ function runCatalogContractCheck(options: {
           resultColumnContracts.map((column) => [column.name, column.type]).sort(([left], [right]) => left.localeCompare(right))
         );
         const metadata = extractQueryModelMetadata(loaded.filePath);
+        if (metadata.hasInlineQueryModel) {
+          issues.push('queryModel metadata must be stored in generated/query.meta.ts, not mixed into the editable contract file.');
+        }
+        if (metadata.requiresMetadataFile && !metadata.hasQueryModel) {
+          issues.push('generated/query.meta.ts is required for queryModel metadata but was not found.');
+        }
         const checksSssqlCompression = metadata.analysisSssqlCompressionJson !== undefined
           || metadata.bindingSssqlCompressionJson !== undefined;
         const currentAnalysis = analyzeQueryModel(sql, orderedUniqueSqlParameters, resultColumnContracts, {
@@ -551,11 +566,25 @@ function extractQueryModelMetadata(specFilePath: string): {
   bindingSql?: string;
   bindingOrderedNames: string[];
   bindingSssqlCompressionJson?: string;
+  hasInlineQueryModel?: boolean;
+  requiresMetadataFile?: boolean;
 } {
-  const source = readFileSync(specFilePath, 'utf8');
+  const metadataPath = path.join(path.dirname(specFilePath), 'generated', 'query.meta.ts');
+  const hasMetadataFile = existsSync(metadataPath);
+  const specSource = readFileSync(specFilePath, 'utf8');
+  const source = hasMetadataFile ? readFileSync(metadataPath, 'utf8') : '';
+  const hasInlineQueryModel = /export\s+const\s+queryModel\s*=/.test(specSource);
+  const requiresMetadataFile = /generated\/query\.meta\.js/.test(specSource) || /\bqueryModel\.analysis\b/.test(specSource);
   const hasQueryModel = /\bqueryModel\b/.test(source);
   if (!hasQueryModel) {
-    return { hasQueryModel: false, analysisNamedParameters: [], analysisResultColumns: [], bindingOrderedNames: [] };
+    return {
+      hasQueryModel: false,
+      hasInlineQueryModel,
+      requiresMetadataFile,
+      analysisNamedParameters: [],
+      analysisResultColumns: [],
+      bindingOrderedNames: [],
+    };
   }
 
   const analysisObject = parseObjectLiteralAfter(source, 'analysis:')
@@ -614,6 +643,8 @@ function extractQueryModelMetadata(specFilePath: string): {
     bindingSql,
     bindingOrderedNames,
     bindingSssqlCompressionJson,
+    hasInlineQueryModel,
+    requiresMetadataFile,
   };
 }
 
@@ -740,7 +771,6 @@ function resolveSqlFile(params: {
     path.resolve(path.dirname(params.specFilePath), params.sqlFile),
     path.resolve(params.rootDir, params.sqlFile),
     ...(params.sqlRoot ? [path.resolve(params.rootDir, params.sqlRoot, params.sqlFile)] : []),
-    path.resolve(params.rootDir, 'src', 'sql', params.sqlFile),
   ];
   return candidates.find((candidate) => existsSync(candidate));
 }

@@ -1,10 +1,8 @@
 <p align="center">
-  <img src="docs/public/brand/ashiba-logo.jpg" alt="Ashiba" width="180">
+  <img src="docs/public/brand/ashiba-readme-hero.png" alt="Ashiba - Show me the SQL. Ashiba handles the boring parts." width="900">
 </p>
 
-# Show me the SQL.
-
-Ashiba handles the boring parts.
+# Ashiba
 
 Ashiba is a SQL-first scaffolder for TypeScript applications. Keep raw SQL visible. Let Ashiba scaffold the DTOs, mappers, query contracts, tests, migration review, and investigation tools around it.
 
@@ -73,11 +71,9 @@ Run `ashiba --help`, `ashiba <command> --help`, or `ashiba describe command --fo
 | `ashiba feature tests scaffold` | Adds mapper/traditional test lane files. |
 | `ashiba feature tests check` | Detects and optionally fixes generated mapping-test drift. |
 | `ashiba feature generated-mapper check` | Checks named-parameter drift between SQL and editable query contracts. |
-| `ashiba model-gen` | Generates editable query contract scaffolds from visible SQL. |
+| `ashiba model-gen` | Generates editable query contracts and generated query metadata files from visible SQL. |
 | `ashiba check-contract` | Checks visible SQL contracts against mapper boundaries. |
 | `ashiba lint` | Runs aggregate SQL lint over a file or directory. |
-| `ashiba ddl diff` | Compares DDL snapshots and emits a reviewable difference report. |
-| `ashiba ddl risk` | Reports destructive and operational migration risk. |
 | `ashiba ddl migration generate` | Generates reviewable migration SQL from two DDL snapshots. |
 | `ashiba ddl migration info` | Reports risk for generated or hand-edited migration SQL. |
 | `ashiba query uses table` | Finds SQL assets that reference a table. |
@@ -90,7 +86,7 @@ Run `ashiba --help`, `ashiba <command> --help`, or `ashiba describe command --fo
 | `ashiba query lint` | Reports structural SQL maintainability risks. |
 | `ashiba query patch apply` | Applies a reviewed SQL patch back to visible SQL. |
 | `ashiba query sssql list` | Lists SQL-first optional-condition scaffold metadata. |
-| `ashiba query sssql scaffold` | Scaffolds SQL-first optional-condition metadata. |
+| `ashiba query sssql add` | Rewrites a SQL file with a SQL-first optional condition and refreshes metadata. |
 | `ashiba query sssql refresh` | Refreshes SQL-first optional-condition metadata. |
 | `ashiba query sssql remove` | Removes SQL-first optional-condition metadata. |
 | `ashiba perf init` | Scaffolds the traditional performance lane. |
@@ -116,7 +112,7 @@ Use `ashiba feature query scaffold` to add the query boundary and generated quer
 
 ### Change DDL
 
-Use `ashiba ddl diff`, `ashiba ddl migration generate`, and `ashiba ddl migration info` to review the schema change before deployment.
+Use `ashiba ddl migration generate` and `ashiba ddl migration info` to review the schema change before deployment.
 
 ### Change SQL
 

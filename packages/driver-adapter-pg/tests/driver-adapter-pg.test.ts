@@ -21,12 +21,10 @@ describe('@ashiba/driver-adapter-pg', () => {
     const adapter = createPostgresAdapter(client);
     const sourceSql = 'select * from users where id = :id';
 
-    const result = await adapter.execute(querySource(sourceSql), { id: 1 }, {
-      queryModel: queryModelFor(sourceSql, {
+    const result = await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
         sql: 'select * from users where id = $1',
         orderedNames: ['id'],
-      }),
-    });
+      })), { id: 1 },{});
 
     expect(result.rows).toEqual([{ user_id: 1 }]);
     expect(calls).toEqual([{ sql: 'select * from users where id = $1', values: [1] }]);
@@ -43,11 +41,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      { id: 1, status: 'active' },
-      {
-        queryModel: {
+    await adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -61,8 +55,8 @@ describe('@ashiba/driver-adapter-pg', () => {
               orderedNames: ['id', 'status'],
             },
           },
-        },
-      },
+        }),
+      { id: 1, status: 'active' },{},
     );
 
     expect(calls).toEqual([{ sql: 'select * from users where id = $1 and status = $2', values: [1, 'active'] }]);
@@ -79,11 +73,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      { id: 1 },
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -97,8 +87,8 @@ describe('@ashiba/driver-adapter-pg', () => {
               orderedNames: ['id'],
             },
           },
-        },
-      },
+        }),
+      { id: 1 },{},
     )).rejects.toMatchObject({ code: 'ASHIBA_QUERY_MODEL_STALE' });
 
     expect(called).toBe(false);
@@ -147,13 +137,11 @@ describe('@ashiba/driver-adapter-pg', () => {
     });
 
     const sourceSql = 'select :secret';
-    await adapter.execute(querySource(sourceSql), { secret: 'value' }, {
-      metadata: { queryId: 'q1' },
-      queryModel: queryModelFor(sourceSql, {
+    await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
         sql: 'select $1',
         orderedNames: ['secret'],
-      }),
-    });
+      })), { secret: 'value' },{
+      metadata: { queryId: 'q1' }});
 
     expect(events.map((event) => event.phase)).toEqual(['start', 'end']);
     expect(events[0]?.metadata?.queryId).toBe('q1');
@@ -179,16 +167,12 @@ describe('@ashiba/driver-adapter-pg', () => {
       },
     });
 
-    await expect(adapter.execute(
-      querySource('select :id'),
-      {},
-      {
-        metadata: { queryId: 'users.get', sqlPath: 'src/features/users/queries/get/get.sql' },
-        queryModel: queryModelFor('select :id', {
+    await expect(adapter.execute(querySource('select :id', queryModelFor('select :id', {
           sql: 'select $1',
           orderedNames: ['id'],
-        }),
-      },
+        })),
+      {},{
+        metadata: { queryId: 'users.get', sqlPath: 'src/features/users/queries/get/get.sql' }},
     )).rejects.toThrow(AshibaParameterError);
 
     expect(called).toBe(false);
@@ -223,19 +207,15 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      { tenant_id: 10, status: null },
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status'],
           sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
         }, {
           sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
-        }),
-        sssqlCompression: true,
-      },
+        })),
+      { tenant_id: 10, status: null },{
+        sssqlCompression: true},
     );
 
     expect(calls).toEqual([{
@@ -256,18 +236,14 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      { tenant_id: 10, status: null },
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status'],
           sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
         }, {
           sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
-        }),
-      },
+        })),
+      { tenant_id: 10, status: null },{},
     );
 
     expect(calls).toEqual([{
@@ -287,13 +263,11 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(querySource(sourceSql), { id: 1 }, {
-      queryModel: queryModelFor(sourceSql, {
+    await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
         sql: 'select * from users where id = $1',
         orderedNames: ['id'],
-      }),
-      sssqlCompression: true,
-    })).rejects.toMatchObject({
+      })), { id: 1 },{
+      sssqlCompression: true})).rejects.toMatchObject({
       code: 'ASHIBA_SSSQL_COMPRESSION_METADATA_REQUIRED',
       nextAction: 'Regenerate the query model with optional condition compression metadata, or disable sssqlCompression for this execution.',
     });
@@ -311,17 +285,15 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(querySource(sourceSql), { id: 1 }, {
-      queryModel: queryModelFor(sourceSql, {
+    await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
         sql: 'select * from users where id = $1',
         orderedNames: ['id'],
         sssqlCompression: { branches: [] },
       }, {
         astParse: 'failed',
         sssqlCompression: { enabled: true, branches: [] },
-      }),
-      sssqlCompression: true,
-    })).rejects.toMatchObject({
+      })), { id: 1 },{
+      sssqlCompression: true})).rejects.toMatchObject({
       code: 'ASHIBA_SSSQL_COMPRESSION_UNSUPPORTED_QUERY_MODEL',
       nextAction: 'Fix the SQL shape or parser support, then regenerate the query model before enabling sssqlCompression.',
     });
@@ -340,11 +312,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      { tenant_id: 7, status: null, limit: 10 },
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status', 'limit'],
           safeSortInsertion: { index: compiledSql.indexOf('limit $4') },
@@ -356,10 +324,10 @@ describe('@ashiba/driver-adapter-pg', () => {
             sortable: { id: { sql: 'a.user_id' } },
           },
           sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
-        }),
+        })),
+      { tenant_id: 7, status: null, limit: 10 },{
         sssqlCompression: true,
-        sort: [{ key: 'id', direction: 'desc' }],
-      },
+        sort: [{ key: 'id', direction: 'desc' }]},
     );
 
     expect(calls).toEqual([{
@@ -387,15 +355,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      Object.fromEntries([
-        ...beforeNames.map((name, index) => [name, index + 1] as const),
-        ['status', null] as const,
-        ...afterNames.map((name, index) => [name, index + 10] as const),
-      ]),
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: [...beforeNames, 'status', 'status', ...afterNames],
           safeSortInsertion: { index: compiledSql.length },
@@ -407,10 +367,14 @@ describe('@ashiba/driver-adapter-pg', () => {
             sortable: { id: { sql: 'a.user_id' } },
           },
           sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
-        }),
+        })),
+      Object.fromEntries([
+        ...beforeNames.map((name, index) => [name, index + 1] as const),
+        ['status', null] as const,
+        ...afterNames.map((name, index) => [name, index + 10] as const),
+      ]),{
         sssqlCompression: true,
-        sort: [{ key: 'id' }],
-      },
+        sort: [{ key: 'id' }]},
     );
 
     expect(calls).toEqual([{
@@ -432,11 +396,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      { tenant_id: 7, status: null, email: injectedEmail },
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status', 'email', 'email'],
           safeSortInsertion: { index: compiledSql.length },
@@ -459,10 +419,10 @@ describe('@ashiba/driver-adapter-pg', () => {
               ...optionalCompressionAnalysis(sourceSql, 'email', 'and (:email is null or a.email = :email)').branches,
             ],
           },
-        }),
+        })),
+      { tenant_id: 7, status: null, email: injectedEmail },{
         sssqlCompression: true,
-        sort: [{ key: 'id', direction: 'desc' }],
-      },
+        sort: [{ key: 'id', direction: 'desc' }]},
     );
 
     expect(calls).toEqual([{
@@ -487,23 +447,19 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      Object.fromEntries([
-        ...beforeNames.map((name, index) => [name, index + 1] as const),
-        ['status', null] as const,
-        ['email', 'safe@example.test'] as const,
-      ]),
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: [...beforeNames, 'status', 'status', 'email'],
           sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($10 is null or a.status = $11)'),
         }, {
           sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
-        }),
-        sssqlCompression: true,
-      },
+        })),
+      Object.fromEntries([
+        ...beforeNames.map((name, index) => [name, index + 1] as const),
+        ['status', null] as const,
+        ['email', 'safe@example.test'] as const,
+      ]),{
+        sssqlCompression: true},
     );
 
     expect(calls).toEqual([{
@@ -553,19 +509,15 @@ describe('@ashiba/driver-adapter-pg', () => {
       };
       const adapter = createPostgresAdapter(client);
 
-      await adapter.execute(
-        querySource(sourceSql),
-        { p01: 1, status: null, email: `${lexicalCase.label}' or 1=1;--` },
-        {
-          queryModel: queryModelFor(sourceSql, {
+      await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
             sql: compiledSql,
             orderedNames: ['p01', 'status', 'status', 'email'],
             sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or a.status = $3)'),
           }, {
             sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
-          }),
-          sssqlCompression: true,
-        },
+          })),
+        { p01: 1, status: null, email: `${lexicalCase.label}' or 1=1;--` },{
+          sssqlCompression: true},
       );
 
       expect(calls, lexicalCase.label).toEqual([{
@@ -617,11 +569,7 @@ describe('@ashiba/driver-adapter-pg', () => {
           ...afterNames.map((name, index) => [name, `after-${index + 1}' ; drop table after;--`] as const),
         ];
 
-        await adapter.execute(
-          querySource(sourceSql),
-          Object.fromEntries(paramEntries),
-          {
-            queryModel: queryModelFor(sourceSql, {
+        await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
               sql: compiledSql,
               orderedNames: [...beforeNames, 'status', 'status', ...afterNames],
               safeSortInsertion: { index: compiledSql.length },
@@ -637,10 +585,10 @@ describe('@ashiba/driver-adapter-pg', () => {
                 sortable: { id: { sql: 'a.user_id' } },
               },
               sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', sourceBranch),
-            }),
+            })),
+          Object.fromEntries(paramEntries),{
             sssqlCompression: true,
-            sort: [{ key: 'id', direction }],
-          },
+            sort: [{ key: 'id', direction }]},
         );
 
         const compressedWhere = `${beforeCompiled}${afterRenumbered || (hasExistingOrderBy ? ' ' : '')}`;
@@ -672,11 +620,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      { tenant_id: 7, status: null, email: 'a@example.test' },
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status', 'email', 'email'],
           safeSortInsertion: { index: compiledSql.length },
@@ -699,10 +643,10 @@ describe('@ashiba/driver-adapter-pg', () => {
               ...optionalCompressionAnalysis(sourceSql, 'email', 'and (:email is null or a.email = :email)').branches,
             ],
           },
-        }),
+        })),
+      { tenant_id: 7, status: null, email: 'a@example.test' },{
         sssqlCompression: true,
-        sort: [{ key: 'id' }],
-      },
+        sort: [{ key: 'id' }]},
     );
 
     expect(calls).toEqual([{
@@ -723,19 +667,15 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      { tenant_id: 10 },
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status'],
           sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
         }, {
           sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
-        }),
-        sssqlCompression: true,
-      },
+        })),
+      { tenant_id: 10 },{
+        sssqlCompression: true},
     )).rejects.toMatchObject({
       code: 'ASHIBA_MISSING_PARAMETER',
       parameterNames: ['status'],
@@ -756,11 +696,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      { tenant_id: 10, status: null },
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status'],
           sssqlCompression: {
@@ -774,9 +710,9 @@ describe('@ashiba/driver-adapter-pg', () => {
           },
         }, {
           sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
-        }),
-        sssqlCompression: true,
-      },
+        })),
+      { tenant_id: 10, status: null },{
+        sssqlCompression: true},
     )).rejects.toMatchObject({
       code: 'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
     });
@@ -794,11 +730,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      {},
-      {
-        queryModel: {
+    await adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -813,9 +745,9 @@ describe('@ashiba/driver-adapter-pg', () => {
           bindings: queryModelFor(sourceSql, {
             safeSortInsertion: { index: sourceSql.length },
           }).bindings,
-        },
-        sort: [{ key: 'id' }],
-      },
+        }),
+      {},{
+        sort: [{ key: 'id' }]},
     );
 
     expect(calls).toEqual([{ sql: 'select a.user_id as id from users a order by a.user_id asc', values: [] }]);
@@ -832,11 +764,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      {},
-      {
-        queryModel: {
+    await adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -851,9 +779,9 @@ describe('@ashiba/driver-adapter-pg', () => {
           bindings: queryModelFor(sourceSql, {
             safeSortInsertion: { index: sourceSql.length },
           }).bindings,
-        },
-        sort: [{ key: 'id', direction: 'desc' }],
-      },
+        }),
+      {},{
+        sort: [{ key: 'id', direction: 'desc' }]},
     );
 
     expect(calls).toEqual([{ sql: 'select a.user_id as id from users a order by a.name, a.user_id desc', values: [] }]);
@@ -873,11 +801,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      { status: 'active', limit: 10 },
-      {
-        queryModel: {
+    await adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -894,9 +818,9 @@ describe('@ashiba/driver-adapter-pg', () => {
             orderedNames: ['status', 'limit'],
             safeSortInsertion: { index: compiledInsertionIndex },
           }).bindings,
-        },
-        sort: [{ key: 'id', direction: 'desc' }],
-      },
+        }),
+      { status: 'active', limit: 10 },{
+        sort: [{ key: 'id', direction: 'desc' }]},
     );
 
     expect(calls).toEqual([{
@@ -919,11 +843,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await adapter.execute(
-      querySource(sourceSql),
-      { user_id: 1 },
-      {
-        queryModel: {
+    await adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -940,9 +860,9 @@ describe('@ashiba/driver-adapter-pg', () => {
             orderedNames: ['user_id'],
             safeSortInsertion: { index: compiledInsertionIndex },
           }).bindings,
-        },
-        sort: [{ key: 'id' }],
-      },
+        }),
+      { user_id: 1 },{
+        sort: [{ key: 'id' }]},
     );
 
     expect(calls).toEqual([{
@@ -961,11 +881,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource('select * from users'),
-      {},
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource('select * from users', {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -974,12 +890,12 @@ describe('@ashiba/driver-adapter-pg', () => {
             sourceHash: hashSql('select * from users'),
             safeSort: { insertion: { status: 'unresolved' } },
           },
-        },
+        }),
+      {},{
         sortProfile: {
           createdAt: { sql: '"created_at"', defaultDirection: 'desc' },
         },
-        sort: [{ key: 'createdAt' }],
-      },
+        sort: [{ key: 'createdAt' }]},
     )).rejects.toMatchObject({ code: 'ASHIBA_SORT_INSERTION_UNRESOLVED' });
 
     expect(called).toBe(false);
@@ -996,11 +912,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      { user_id: 1 },
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -1019,9 +931,9 @@ describe('@ashiba/driver-adapter-pg', () => {
               orderedNames: ['user_id'],
             },
           },
-        },
-        sort: [{ key: 'id' }],
-      },
+        }),
+      { user_id: 1 },{
+        sort: [{ key: 'id' }]},
     )).rejects.toMatchObject({ code: 'ASHIBA_SORT_QUERY_MODEL_STALE' });
 
     expect(called).toBe(false);
@@ -1038,11 +950,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      {},
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: sourceSql,
           orderedNames: [],
           safeSortInsertion: { index: sourceSql.length },
@@ -1052,16 +960,12 @@ describe('@ashiba/driver-adapter-pg', () => {
             insertion: { status: 'ready', index: sourceSql.length, mode: 'order-by' },
             sortable: { id: { sql: 'a.user_id' } },
           },
-        }),
-        sort: [{ key: 'id desc; drop table users;--' }],
-      },
+        })),
+      {},{
+        sort: [{ key: 'id desc; drop table users;--' }]},
     )).rejects.toMatchObject({ code: 'ASHIBA_UNKNOWN_SORT_KEY' });
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      {},
-      {
-        queryModel: queryModelFor(sourceSql, {
+    await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: sourceSql,
           orderedNames: [],
           safeSortInsertion: { index: sourceSql.length },
@@ -1071,9 +975,9 @@ describe('@ashiba/driver-adapter-pg', () => {
             insertion: { status: 'ready', index: sourceSql.length, mode: 'order-by' },
             sortable: { id: { sql: 'a.user_id' } },
           },
-        }),
-        sort: [{ key: 'id', direction: 'desc; drop table users;--' as 'desc' }],
-      },
+        })),
+      {},{
+        sort: [{ key: 'id', direction: 'desc; drop table users;--' as 'desc' }]},
     )).rejects.toMatchObject({ code: 'ASHIBA_INVALID_SORT_DIRECTION' });
 
     expect(called).toBe(false);
@@ -1090,11 +994,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     const adapter = createPostgresAdapter(client);
     const sourceSql = 'select user_id as id from active_users union all select user_id as id from archived_users';
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      {},
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -1108,12 +1008,12 @@ describe('@ashiba/driver-adapter-pg', () => {
               },
             },
           },
-        },
+        }),
+      {},{
         sortProfile: {
           id: { sql: 'id' },
         },
-        sort: [{ key: 'id' }],
-      },
+        sort: [{ key: 'id' }]},
     )).rejects.toMatchObject({
       code: 'ASHIBA_SORT_UNSUPPORTED_QUERY_MODEL',
       message: expect.stringContaining('Wrap the compound query in a subquery'),
@@ -1133,11 +1033,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      {},
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -1148,9 +1044,9 @@ describe('@ashiba/driver-adapter-pg', () => {
               sortable: { createdAt: { sql: '"created_at"', defaultDirection: 'desc' } },
             },
           },
-        },
-        sort: [{ key: 'missing' }],
-      },
+        }),
+      {},{
+        sort: [{ key: 'missing' }]},
     )).rejects.toMatchObject({ code: 'ASHIBA_UNKNOWN_SORT_KEY' });
 
     expect(called).toBe(false);
@@ -1167,11 +1063,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource(sourceSql),
-      {},
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource(sourceSql, {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -1183,12 +1075,12 @@ describe('@ashiba/driver-adapter-pg', () => {
               sortable: { id: { sql: 'a.user_id' } },
             },
           },
-        },
+        }),
+      {},{
         sortProfile: {
           id: { sql: 'random()' },
         },
-        sort: [{ key: 'id' }],
-      },
+        sort: [{ key: 'id' }]},
     )).rejects.toMatchObject({ code: 'ASHIBA_SORT_PROFILE_OUTSIDE_QUERY_MODEL' });
 
     expect(called).toBe(false);
@@ -1204,11 +1096,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource('select * from users'),
-      {},
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource('select * from users', {
           analysis: {
             astParse: 'ok',
             statementKind: 'select',
@@ -1216,12 +1104,12 @@ describe('@ashiba/driver-adapter-pg', () => {
             sourceHash: hashSql('select * from other_users'),
             safeSort: { insertion: { status: 'unresolved' } },
           },
-        },
+        }),
+      {},{
         sortProfile: {
           createdAt: { sql: '"created_at"', defaultDirection: 'desc' },
         },
-        sort: [{ key: 'createdAt' }],
-      },
+        sort: [{ key: 'createdAt' }]},
     )).rejects.toMatchObject({ code: 'ASHIBA_SORT_QUERY_MODEL_STALE' });
 
     expect(called).toBe(false);
@@ -1255,18 +1143,14 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource('select * from users'),
-      {},
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource('select * from users', {
           analysis: { astParse: 'failed', statementKind: 'unknown', hasTopLevelOrderBy: false },
-        },
+        }),
+      {},{
         sortProfile: {
           createdAt: { sql: '"created_at"', defaultDirection: 'desc' },
         },
-        sort: [{ key: 'createdAt' }],
-      },
+        sort: [{ key: 'createdAt' }]},
     )).rejects.toMatchObject({ code: 'ASHIBA_SORT_UNSUPPORTED_QUERY_MODEL' });
   });
 
@@ -1278,18 +1162,14 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(
-      querySource('update users set name = :name'),
-      {},
-      {
-        queryModel: {
+    await expect(adapter.execute(querySource('update users set name = :name', {
           analysis: { astParse: 'ok', statementKind: 'update', hasTopLevelOrderBy: false },
-        },
+        }),
+      {},{
         sortProfile: {
           createdAt: { sql: '"created_at"', defaultDirection: 'desc' },
         },
-        sort: [{ key: 'createdAt' }],
-      },
+        sort: [{ key: 'createdAt' }]},
     )).rejects.toThrow(AshibaSortError);
   });
 
@@ -1313,12 +1193,10 @@ describe('@ashiba/driver-adapter-pg', () => {
     });
 
     const sourceSql = 'select * from missing where id = :id';
-    await expect(adapter.execute(querySource(sourceSql), { id: 1 }, {
-      queryModel: queryModelFor(sourceSql, {
+    await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
         sql: 'select * from missing where id = $1',
         orderedNames: ['id'],
-      }),
-    })).rejects.toThrow('relation does not exist');
+      })), { id: 1 },{})).rejects.toThrow('relation does not exist');
 
     expect(events.map((event) => event.phase)).toEqual(['start', 'error']);
     expect(events[1]?.error).toMatchObject({ message: 'relation does not exist', code: '42P01' });
@@ -1336,12 +1214,10 @@ describe('@ashiba/driver-adapter-pg', () => {
     };
     const adapter = createPostgresAdapter(client);
 
-    await expect(adapter.execute(querySource('select :id'), { id: 1, unused: true }, {
-      queryModel: queryModelFor('select :id', {
+    await expect(adapter.execute(querySource('select :id', queryModelFor('select :id', {
         sql: 'select $1',
         orderedNames: ['id'],
-      }),
-    })).rejects.toThrow(AshibaParameterError);
+      })), { id: 1, unused: true },{})).rejects.toThrow(AshibaParameterError);
     expect(called).toBe(false);
   });
 });

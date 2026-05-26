@@ -35,6 +35,7 @@ Ashiba should cover practical development support often expected from ORMs, excl
 - CLI scaffolding for SQL-first TypeScript projects.
 - DBMS-neutral product vocabulary and configuration surfaces, even when the initial starter uses PostgreSQL.
 - Explicit DBMS starter selection during setup; Ashiba should not silently choose an application database driver.
+- Customer tests per selected DBMS and wrapped driver that prove minimum functionality, not only installability.
 - Application-owned package manager state. `ashiba init` may scaffold files, but it should not create or manage `package.json` as if Ashiba owned the consuming project.
 - Review-oriented generated artifacts around SQL, DDL, tests, mappings, migrations, sqlgrep, and impact analysis.
 - Generated code that humans and AI agents may edit after scaffolding.
@@ -47,6 +48,7 @@ Ashiba should cover practical development support often expected from ORMs, excl
 - Application transaction policy.
 - Application dependency installation and package manager policy.
 - Treating the initial PostgreSQL starter path as proof that Ashiba is PostgreSQL-only.
+- Treating tarball install, import smoke, or typecheck alone as a customer test.
 
 ### Related Concepts
 
@@ -284,7 +286,7 @@ Ashiba is a rebrand and integration of the `ztd-cli`, sqlgrep, and migration wor
 
 Using `rawsql-ts` core keeps SQL analysis AST-first and stable while allowing Ashiba to focus on the product contract: visible SQL, editable generated code, drift checks, migration review, and ORM-like development support without a runtime ORM.
 
-Development-time SQL understanding should prefer tested AST APIs over regular-expression or hand-written lexical parsing. Regex and lexical scans are acceptable only as narrow helpers for non-structural concerns such as generated TypeScript metadata extraction, path normalization, source-offset slicing, parser-failure diagnostics, or explicitly documented compatibility behavior while an AST-backed implementation is being migrated.
+Development-time SQL understanding should prefer tested AST APIs over regular-expression or hand-written lexical parsing. Regex and lexical scans are acceptable only as narrow helpers for non-structural concerns such as generated TypeScript metadata extraction, path normalization, source-offset slicing, or parser-failure diagnostics.
 
 Ashiba should dislike silent fallback. The `rawsql-ts` AST parser is a trusted, heavily tested dependency for development-time SQL understanding. If dev-time SQL structural analysis cannot be expressed through that AST path, first treat it as an Ashiba AST traversal gap or a reportable `rawsql-ts` parser/AST issue, not as permission to silently ship a regex-based interpretation. The tool should fail with a clear cause and next action, report the unsupported shape, or require an explicit human-controlled option before using fallback behavior. Quietly repairing, rewriting, or reinterpreting SQL makes failures harder to understand and is not aligned with Ashiba's explicit drift recovery concept.
 
@@ -295,7 +297,7 @@ Ashiba should dislike silent fallback. The `rawsql-ts` AST parser is a trusted, 
 - Prefer AST-first parsing over ad hoc string parsing for query analysis, sqlgrep, CTE planning, linting, and SSSQL helpers.
 - Prefer AST-backed extraction for development-time table, column, result-column, clause, and predicate analysis.
 - Treat regex-based SQL structure extraction as parser/AST capability debt unless it is limited to source locations or explicitly reported parser-failure diagnostics.
-- Make fallback behavior explicit, diagnosable, and human-controlled when it can affect SQL meaning, generated metadata, lint findings, or drift results.
+- Do not keep pre-release migration shims; unsupported shapes should fail clearly or be fixed at the AST/parser boundary.
 - Prefer fixing the AST parser, AST traversal, or query model metadata over adding quiet local string parsing.
 - Treat unexpected `rawsql-ts` parse failures as bugs to investigate or report, because the AST parser is the intended source of truth for development-time SQL structure.
 - Prefer CLI-internal implementation for Runtime Zero support capabilities that are only used during development.
@@ -344,6 +346,7 @@ Runtime zero development still needs safety, but Ashiba should place that safety
 
 - Generate or scaffold mapper tests that prove SQL result rows map to DTOs correctly.
 - Support DB-backed integration tests where the real database type constraints are exercised.
+- Require customer functional tests for each supported wrapped driver to execute real DB-backed mapping checks, not only package installation or adapter import checks.
 - Treat mapper tests and drift checks as the type-safety gate.
 - Prefer Zero Table Dependency for mapper tests.
 - Keep generated DTOs and mappers readable and reviewable.
@@ -505,6 +508,8 @@ Hidden CLI-generated SQL rewriting makes the full query harder to understand, ma
 Runtime application code should not pass arbitrary SQL strings into Ashiba execution boundaries. Runtime execution should start from a reviewed SQL file or a generated query source object that carries the SQL text, SQL path, and matching CLI-generated query model metadata.
 
 The final database driver call inevitably receives a SQL string. That string is an internal adapter detail, not the public application boundary. The application-facing boundary should be query-model-backed so Ashiba can verify the source hash, named-parameter metadata, and safe-sort metadata before execution.
+
+This runtime boundary is separate from development-time SQL authoring commands. A command such as `ashiba query sssql add` may accept a column name or an EXISTS subquery text as authoring input only as a way to generate or update a SQL file during development. The result must be written back to a SQL file and the generated query metadata must be refreshed. That does not permit runtime execution APIs to accept arbitrary SQL strings.
 
 This concept applies to scaffolded and generated application code, not only to code inside driver adapter library packages. When `@ashiba/cli` generates a SQL client, feature executor, connection seam, or starter adapter file, that generated code is part of the concept check surface. A generated starter must not bypass the file-backed or query-model-backed execution boundary just because the unsafe code lives in the consuming project after scaffolding.
 
@@ -858,7 +863,7 @@ Safe sort profiles define whitelisted sort keys and directions for DB driver wra
 
 Dynamic sorting is common, but raw user-provided ORDER BY strings are unsafe. A narrow sort profile plus CLI-generated query model analysis can define the sortable surface. The query model records where to insert sort SQL and whether an existing top-level `ORDER BY` requires comma append mode. This keeps runtime behavior deterministic without embedding Ashiba-only notation in SQL.
 
-Runtime AST parsing is a last resort. It adds overhead and couples production behavior to the AST parser's runtime correctness. If Ashiba can generate stable insertion metadata at development time, the runtime driver should only verify metadata freshness, validate the sort input, and perform the bounded splice.
+Runtime AST parsing is outside the current driver path. It adds overhead and couples production behavior to the AST parser's runtime correctness. Ashiba should generate stable insertion metadata at development time; the runtime driver should only verify metadata freshness, validate the sort input, and perform the bounded splice. If metadata cannot describe a SQL shape, the driver should reject it with guidance instead of parsing the SQL at runtime.
 
 The sortable dictionary maps public sort names to reviewed SQL expressions. For example, `select a.user_id as id from users a` can expose `id` as a sort key whose SQL expression is `a.user_id`, so sorting by the DTO-facing name still renders `order by a.user_id`.
 
@@ -928,6 +933,8 @@ The preferred path avoids runtime AST parsing. `@ashiba/cli` records supported o
 Optional filters are useful, but building WHERE clauses dynamically is a common SQL injection and debuggability risk. SSSQL keeps the full query visible and directly runnable, while metadata-backed compression removes absent optional branches without letting runtime code invent SQL structure.
 
 This is intentionally optional. When compression is not enabled, the SQL executes exactly as authored. When compression is enabled, missing or stale metadata is an error, not a reason to scan SQL at runtime or silently fall back.
+
+SSSQL authoring is a development-time SQL-file maintenance workflow, not a runtime SQL-string execution path. It may take authoring inputs such as `add user_id` or an EXISTS subquery and rewrite the SQL file to include the optional branch. Every successful SSSQL rewrite must refresh the query metadata used by runtime compression.
 
 ### Included Responsibilities
 
@@ -1151,7 +1158,9 @@ Generated code is meant to be readable and editable, so Ashiba needs explicit ch
 
 ### Definition
 
-Generated code should be visible, readable, editable by humans and AI agents, drift-checked, and meant to grow with the application. Generation is the start of ownership, not the end of the workflow. The exception is DDL-derived unit-test schema files in generated folders, which are library-owned and may be regenerated.
+Generated code should be visible, readable, editable by humans and AI agents, drift-checked, and meant to grow with the application. Generation is the start of ownership, not the end of the workflow. The exception is library-owned files under generated folders, such as DDL-derived unit-test schema files and query metadata files, which may be regenerated.
+
+Generated files that Ashiba owns and files that humans are expected to edit must not be mixed in the same physical file. If a command refreshes metadata, the refreshed metadata must live in an obvious generated metadata file such as `generated/query.meta.ts`, while editable boundary code keeps only human-owned choices such as whether optional SSSQL compression is enabled for that query.
 
 ### Why It Exists
 
@@ -1162,7 +1171,8 @@ Ashiba scaffolds starting points and review artifacts rather than locking the ap
 - Human-readable generated files.
 - Generated files that humans and AI agents may intentionally edit.
 - Clear ownership of generated versus human-authored files.
-- Library-owned generated-folder files for DDL-derived unit-test schemas.
+- Library-owned generated-folder files for DDL-derived unit-test schemas and query metadata files.
+- Physical separation between generated-owned metadata and editable boundary code.
 - Drift checks for generated contracts.
 - Keeping generated files visible in the repository instead of hiding them behind a generator.
 - Explicit failure detection with clear cause and next action when generated schema/model artifacts drift.
@@ -1173,7 +1183,8 @@ Ashiba scaffolds starting points and review artifacts rather than locking the ap
 - Rewriting human-owned files without explicit force.
 - Watch-mode automatic regeneration that silently rewrites generated schema/model artifacts after DDL changes.
 - Treating `generate` as a one-way replacement for human review, editing, and drift checking.
-- Treating library-owned generated-folder unit-test schema files as human-edited source.
+- Mixing generated-owned metadata and human-editable code in one file.
+- Treating library-owned generated-folder files as human-edited source.
 
 ### Related Concepts
 
@@ -1652,8 +1663,8 @@ Applications need optional conditions, and `rawsql-ts` already has a useful SQL-
 ### Included Responsibilities
 
 - SSSQL optional condition listing.
-- SSSQL optional condition scaffold.
-- Refresh existing scaffolded branches.
+- Add SSSQL optional condition branches.
+- Refresh existing optional branches and generated query metadata.
 - Remove supported optional branches.
 - Preserve existing SSSQL behavior from the migration source unless it conflicts with Ashiba's runtime boundaries.
 

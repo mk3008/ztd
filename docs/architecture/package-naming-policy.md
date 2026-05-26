@@ -127,4 +127,4 @@ Driver adapters must not handle business SQL generation, ORM entities, query DSL
 
 `@ashiba/sql-transform-scalar` is planned for migration from the `rawsql-ts` / `ztd-cli` SSSQL optional-condition tooling.
 
-Safe sort is not a transform package. The whitelisted sort profile belongs to the DB driver wrapper boundary and must be gated by explicit query model analysis rather than Ashiba-only SQL markers. ORDER BY insertion uses CLI-generated safe insertion metadata: insertion position, order-by/comma mode, and sortable dictionary. Driver runtime AST parsing is only a fallback, not the preferred design.
+Safe sort is not a transform package. The whitelisted sort profile belongs to the DB driver wrapper boundary and must be gated by explicit query model analysis rather than Ashiba-only SQL markers. ORDER BY insertion uses CLI-generated safe insertion metadata: insertion position, order-by/comma mode, and sortable dictionary. Driver runtime AST parsing is not part of the design; unsupported shapes should fail with guidance instead.

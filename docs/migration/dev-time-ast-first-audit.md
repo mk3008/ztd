@@ -10,7 +10,7 @@ The `rawsql-ts` AST parser is the trusted source for development-time SQL struct
 - a reportable `rawsql-ts` parser or AST issue when valid SQL cannot be parsed
 - an unsupported SQL shape that should be reported to the human
 
-Do not silently fall back to regex or lexical interpretation for SQL structure. Fallback must be explicit, diagnosable, and human-controlled when it can affect generated metadata, lint findings, drift results, or query execution metadata.
+Do not silently fall back to regex or lexical interpretation for SQL structure. Before public release, migration shims should be removed rather than carried forward; unsupported shapes should fail clearly or be fixed at the AST/parser boundary.
 
 Regex and lexical scans are acceptable only for narrow helper work:
 
@@ -18,7 +18,6 @@ Regex and lexical scans are acceptable only for narrow helper work:
 - generated TypeScript metadata extraction when TypeScript parsing is not yet introduced
 - path and string normalization
 - parser-failure diagnostics that clearly say AST parsing failed
-- explicitly documented compatibility behavior while an AST-backed implementation is being migrated
 
 ## Current AST-Aligned Areas
 
