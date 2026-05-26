@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import fc from 'fast-check';
 import { describe, expect, test } from 'vitest';
 import {
   AshibaParameterError,
@@ -572,6 +573,91 @@ describe('@ashiba/driver-adapter-pg', () => {
         values: [1, `${lexicalCase.label}' or 1=1;--`],
       }]);
     }
+  });
+
+  test('property: SSSQL compression and safe sort keep SQL shape and bound values stable', async () => {
+    await fc.assert(fc.asyncProperty(
+      fc.record({
+        beforeCount: fc.integer({ min: 1, max: 14 }),
+        afterCount: fc.integer({ min: 0, max: 8 }),
+        hasExistingOrderBy: fc.boolean(),
+        direction: fc.constantFrom<'asc' | 'desc'>('asc', 'desc'),
+      }),
+      async ({ beforeCount, afterCount, hasExistingOrderBy, direction }) => {
+        const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
+        const beforeNames = Array.from({ length: beforeCount }, (_, index) => `p${String(index + 1).padStart(2, '0')}`);
+        const afterNames = Array.from({ length: afterCount }, (_, index) => `q${String(index + 1).padStart(2, '0')}`);
+        const selectSql = "select a.user_id as id, '$999 is literal' as note from users a";
+        const beforeSource = beforeNames.map((name) => `a.${name} = :${name}`).join(' and ');
+        const beforeCompiled = beforeNames.map((name, index) => `a.${name} = $${index + 1}`).join(' and ');
+        const sourceBranch = 'and (:status is null or a.status = :status)';
+        const compiledBranch = `and ($${beforeCount + 1} is null or a.status = $${beforeCount + 2})`;
+        const afterSource = afterNames.length > 0
+          ? ` and ${afterNames.map((name) => `a.${name} = :${name}`).join(' and ')}`
+          : '';
+        const afterCompiled = afterNames.length > 0
+          ? ` and ${afterNames.map((name, index) => `a.${name} = $${beforeCount + 3 + index}`).join(' and ')}`
+          : '';
+        const afterRenumbered = afterNames.length > 0
+          ? `  and ${afterNames.map((name, index) => `a.${name} = $${beforeCount + 1 + index}`).join(' and ')}`
+          : '';
+        const orderSource = hasExistingOrderBy ? ' order by a.created_at' : '';
+        const sourceSql = `${selectSql} where ${beforeSource} ${sourceBranch}${afterSource}${orderSource}`;
+        const compiledSql = `${selectSql} where ${beforeCompiled} ${compiledBranch}${afterCompiled}${orderSource}`;
+        const client: NodePostgresQueryable = {
+          async query(sql, values) {
+            calls.push({ sql, values });
+            return { rows: [], rowCount: 0 };
+          },
+        };
+        const adapter = createPostgresAdapter(client);
+        const paramEntries = [
+          ...beforeNames.map((name, index) => [name, `before-${index + 1}' ; drop table before;--`] as const),
+          ['status', null] as const,
+          ...afterNames.map((name, index) => [name, `after-${index + 1}' ; drop table after;--`] as const),
+        ];
+
+        await adapter.execute(
+          querySource(sourceSql),
+          Object.fromEntries(paramEntries),
+          {
+            queryModel: queryModelFor(sourceSql, {
+              sql: compiledSql,
+              orderedNames: [...beforeNames, 'status', 'status', ...afterNames],
+              safeSortInsertion: { index: compiledSql.length },
+              sssqlCompression: optionalCompressionBinding(compiledSql, 'status', compiledBranch),
+            }, {
+              rootQueryShape: 'simple-select',
+              safeSort: {
+                insertion: {
+                  status: 'ready',
+                  index: sourceSql.length,
+                  mode: hasExistingOrderBy ? 'comma' : 'order-by',
+                },
+                sortable: { id: { sql: 'a.user_id' } },
+              },
+              sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', sourceBranch),
+            }),
+            sssqlCompression: true,
+            sort: [{ key: 'id', direction }],
+          },
+        );
+
+        const compressedWhere = `${beforeCompiled}${afterRenumbered || (hasExistingOrderBy ? ' ' : '')}`;
+        const expectedSql = hasExistingOrderBy
+          ? `${selectSql} where ${compressedWhere} order by a.created_at, a.user_id ${direction}`
+          : `${selectSql} where ${compressedWhere} order by a.user_id ${direction}`;
+        const expectedValues = [
+          ...beforeNames.map((_, index) => `before-${index + 1}' ; drop table before;--`),
+          ...afterNames.map((_, index) => `after-${index + 1}' ; drop table after;--`),
+        ];
+
+        expect(calls).toEqual([{ sql: expectedSql, values: expectedValues }]);
+        for (const value of expectedValues) {
+          expect(calls[0]?.sql).not.toContain(value);
+        }
+      },
+    ), { numRuns: 100 });
   });
 
   test('combines SSSQL compression with mixed optional parameters and comma-mode safe sort', async () => {

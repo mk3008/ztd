@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/node": "^22.13.10",
     "@types/pg": "^8.20.0",
+    "fast-check": "^4.8.0",
     "pg": "^8.21.0"
   },
   "engines": {
