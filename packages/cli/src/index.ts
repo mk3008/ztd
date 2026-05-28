@@ -5,11 +5,13 @@ import { formatAshibaError, parseAshibaErrorMode, type AshibaErrorMode } from '.
 import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { registerCheckCommand } from './commands/check.js';
 import { registerCheckContractCommand } from './commands/check-contract.js';
 import { registerConfigCommand } from './commands/config.js';
 import { registerDescribeCommand } from './commands/describe.js';
 import { registerDdlCommand } from './commands/ddl.js';
 import { registerFeatureCommand } from './commands/feature.js';
+import { registerGateCommand } from './commands/gate.js';
 import { registerInitCommand } from './commands/init.js';
 import { registerLintCommand } from './commands/lint.js';
 import { registerModelGenCommand } from './commands/model-gen.js';
@@ -43,6 +45,9 @@ Status:
   model generation, RFBA inspection, and performance evidence.
 
 Common use cases:
+  ashiba check                Run the fast human-first diagnostic gate.
+  ashiba check --full         Run the full gate for pre-push, review, or CI.
+  ashiba gate scaffold        Create the standard passive gate surface.
   ashiba init                 Create a SQL-first starter after choosing a DBMS/driver.
   ashiba feature scaffold     Add a reviewable feature boundary from DDL metadata.
   ashiba query slice          Debug one CTE step inside a complex WITH query.
@@ -51,11 +56,13 @@ Common use cases:
   ashiba describe command     Show the command catalog with AI-readable use cases.
 `);
 
+  registerCheckCommand(program);
   registerCheckContractCommand(program);
   registerConfigCommand(program);
   registerDescribeCommand(program);
   registerDdlCommand(program);
   registerFeatureCommand(program);
+  registerGateCommand(program);
   registerInitCommand(program);
   registerLintCommand(program);
   registerModelGenCommand(program);

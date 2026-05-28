@@ -20,6 +20,16 @@ The current ConceptSpec format is provisional. This page is optimized for human 
 | Driver Packages | `@ashiba/sql-*`, `@ashiba/driver-adapter-*`, `@ashiba/testkit-adapter-*`, `@ashiba/dialect-*` | Own thin driver seams, named parameters, sort profiles, dialect details, and testkit/production adapter separation. |
 | Extension Packages | `@ashiba/sql-transform-*`, future `@ashiba/extension-*` | Own future SQL-first transforms without becoming ORM query planning or a query DSL. |
 
+## Customer Contact Review Lanes
+
+Ashiba concepts should also be reviewed by customer contact level. A library-only review is not enough because Ashiba scaffolds code into the customer's repository, then asks the customer to maintain that code.
+
+| Contact level | Review focus | Why it matters |
+|---|---|---|
+| Primary contact | Ashiba as a library and CLI product | The first customer contact is the command, package, docs, help, runtime boundary, and generated-code promise. This level checks whether Ashiba itself is understandable and trustworthy. |
+| Secondary contact | Ashiba as a scaffolder | The second customer contact is the scaffolded code placed into the customer's repository. This level checks whether file placement, comments, TODOs, extension points, and naming naturally guide beginners and customer-side AI toward the intended maintenance path. Customer tests are important here because library authors are no longer the ones editing the generated code. |
+| Tertiary contact | Ashiba as validation and recovery tooling | The third customer contact appears after the customer changes SQL, DDL, DTOs, mappers, or generated-adjacent assets. This level checks whether broken consistency is detected in ordinary work, explained clearly, and recoverable quickly through fast local checks, full checks, hooks, or CI. |
+
 ## Repository Philosophy Concepts
 
 These concepts apply to the whole repository and constrain all packages.
@@ -28,13 +38,12 @@ These concepts apply to the whole repository and constrain all packages.
 |---|---|---|---|
 | `ashiba` | Ashiba | mostly done | Product identity for the `ztd-cli` rebrand; package and command surfaces now use Ashiba naming. Ashiba is not PostgreSQL-only; product-level vocabulary stays DBMS-neutral while DBMS-specific wrappers name their concrete driver or tool. Setup requires explicit DBMS starter selection and keeps package manager state application-owned. |
 | `visible-sql` | Visible SQL | mostly done | SQL remains readable, reviewable, editable, executable, searchable, and uses named parameters for maintainability. |
-| `boring-parts` | Boring Parts | mostly done | DTO definitions, mappers, query ID numbering, tests, migration review, sqlgrep, and impact analysis have initial Ashiba surfaces; richer row typing remains. |
+| `boring-parts` | Boring Parts | mostly done | DTO definitions, mappers, query ID numbering, tests, optional migration review, sqlgrep, and impact analysis have initial Ashiba surfaces; richer row typing remains. |
 | `ashiba-runtime-zero` | Ashiba Runtime Zero | mostly done | `@ashiba/cli` generates native TypeScript application code; generated application code does not require Ashiba CLI/runtime libraries, while driver adapters and extensions may have runtime dependencies. |
 | `no-orm-runtime` | No ORM Runtime | mostly done | Rejects entities, relation loading, lazy loading, unit-of-work tracking, dirty tracking, and runtime model ownership; feature code owns orchestration. |
 | `no-query-dsl-ceremony` | No Query DSL Ceremony | mostly done | SQL remains SQL, directly runnable in a SQL client, and free of Ashiba-only SQL notation. |
-| `editable-generated-code` | Editable Generated Code | mostly done | Generated code remains visible repository code, may be edited by humans and AI agents, and stays under drift checks after generation. Generated-owned metadata and human-editable code must be physically separated. |
-| `explicit-drift-recovery` | Explicit Drift Recovery | mostly done | Prefer clear drift failures with cause and next action over watch-mode automatic regeneration of schema/model artifacts. |
-| `discontinuous-work-detection` | Discontinuous Work Detection | partial | Valid edits may happen separately from their follow-up refresh or review steps, but stale schema/model/query/test artifacts must naturally surface through ordinary tests, gates, or metadata guards with recovery guidance. |
+| `editable-generated-code` | Editable Generated Code | mostly done | Generated code remains visible customer-owned repository code, may be edited by humans and AI agents, and stays under drift checks after generation. Generated-owned metadata and human-editable code must be physically separated. |
+| `passive-failure-surface` | Passive Failure Surface | partial | Ashiba must expose fast failures in the ordinary development path so customers notice broken DDL, SQL, DTO, mapper, metadata, or generated-adjacent consistency without relying on remembered manual refresh commands. Valid edits may happen separately from follow-up refresh/review steps, but stale artifacts must naturally surface through fast local checks, full checks, hooks, CI, or runtime metadata guards. Failures should include cause and next action; when recovery is mechanical, Ashiba should offer explicit refresh/fix commands instead of only explaining the problem. Scaffolded gates must be usable as generated, without hidden prerequisite steps. |
 | `no-ai-behavior-file-distribution` | No AI Behavior File Distribution | mostly done | `ashiba init` may create README/docs, but Ashiba must not distribute `AGENTS.md`, `SKILL.md`, skills, prompts, or other files that alter AI-agent behavior. |
 | `mapper-tested-type-safety` | Mapper-Tested Type Safety | mostly done | DTO and mapper type safety is guaranteed by mapper tests and DB-backed integration tests, not runtime result-row validation. |
 | `error-output-modes` | Error Output Modes | mostly done | Shared formatter and CLI option support human-oriented and AI-oriented modes. Both modes include cause and next action/hint; known production errors in the current package set expose structured cause/action metadata, with formatter fallbacks kept as a safety net for unexpected errors. |
@@ -42,6 +51,7 @@ These concepts apply to the whole repository and constrain all packages.
 | `file-backed-runtime-sql` | File-Backed Runtime SQL | partial | Runtime execution boundaries accept reviewed SQL files or generated query source objects with SQL path and query model metadata, not arbitrary SQL string input. This applies to scaffolded/generated SQL clients and executors as well as driver adapter packages. The underlying driver still receives a string internally after metadata checks. |
 | `query-model-metadata-contract` | Query Model Metadata Contract | partial | Runtime Zero SQL handling may use development-time AST analysis metadata only when the metadata is drift-checked against the source SQL by source hashes or equivalent checks. |
 | `public-api-and-help-surface` | Public API and Help Surface | partial | Public exported functions require JSDoc. CLI commands require help surfaces before execution, with AI-oriented help allowed when a structured form is safer. |
+| `human-first-command-interface` | Human-First Command Interface | partial | Ashiba should provide a small, memorable diagnostic entry point for people who do not know every specialized command. Higher-level commands may wrap narrower capabilities when that makes the ordinary loop easier to understand, fast enough to repeat, and safer to recover from. Default command paths should prefer one clear action over target selection; advanced flags may exist, but beginners should not need them. Names of commands, directories, files, and functions are part of the interface because they guide both humans and AI agents. |
 | `cli-dry-run` | CLI Dry Run | partial | Mutating CLI commands must expose dry-run or equivalent preview behavior that reports planned effects without changing files or external state. Read-only inspection commands are already observational. |
 
 ## CLI Concepts
@@ -55,11 +65,12 @@ These concepts primarily belong to `@ashiba/cli`.
 | `performance-tuning-session` | Performance Tuning Session | mostly done | Traditional DB-backed tuning evidence: representative row counts, timeout status, plans, timings, sandbox-only candidate indexes, and explicit DDL promotion. |
 | `drift-detection` | Drift Detection | mostly done | Checks DDL, SQL, DTO types, and mappers during development. |
 | `migration-artifact` | Migration Artifact | mostly done | Review-oriented migration output, not hidden apply behavior. |
-| `migration-query-generation` | Migration Query Generation | mostly done | CLI compares two DDL inputs and emits migration DDL plus risk info; DB connection and apply are out of scope. |
+| `migration-query-generation` | Migration Query Generation | mostly done | Optional CLI support compares two DDL inputs and emits reviewable migration DDL plus risk info; DB connection, apply, rollback, scheduling, and migration-platform ownership are out of scope. |
 | `sql-impact-analysis` | SQL Impact Analysis | mostly done | Table usage, column usage, query outline, dependency graph, CTE slice debugging, and JSON output. |
 | `sqlgrep` | sqlgrep | mostly done | Keep `sqlgrep` as the capability name; expose it through Ashiba query commands where useful. |
 | `cli-no-hidden-sql-rewrite` | CLI No Hidden SQL Rewrite | mostly done | `@ashiba/cli` does not hide dynamic SQL rewriting in generated application code; driver adapters and SQL-first extensions keep their own explicit boundaries. |
 | `rfba` | RFBA | mostly done | Review-First Boundary Architecture: scaffolding fixes repeatable VSA-style feature/query review grain, supports subgrouped boundaries, and avoids technical-layer folders as the primary split. |
+| `scaffold-as-guidance` | Scaffold As Guidance | partial | Scaffolded files are a customer-facing product surface, not only generated output. File placement, directory names, function names, comments, TODOs, and empty extension points should guide beginners and customer-side AI toward the intended maintenance path without requiring deep Ashiba knowledge. CLI scaffolding and generated holes are preferred guardrails when they are faster and more reliable than asking an AI to infer the project shape from prose. |
 | `query-boundary` | Query Boundary | mostly done | Feature-local named SQL access boundary for SQL, query ID, DTO/mapped result contract, parameter contract, execution contract, log trace identity, and verification. |
 | `feature-boundary` | Feature Boundary | mostly done | Feature-owned public surface and query boundary container; one feature may contain multiple query boundaries as behavior grows. |
 
@@ -109,13 +120,13 @@ flowchart TD
   Tests --> TestLanes["Test Lanes"]
   Tests --> MapperType["Mapper-Tested Type Safety"]
   Tests --> Drift["Drift Detection"]
-  Drift --> ExplicitDrift["Explicit Drift Recovery"]
-  ExplicitDrift --> DiscontinuousWork["Discontinuous Work Detection"]
+  Drift --> PassiveFailure["Passive Failure Surface"]
   CLI --> Impact["SQL Impact Analysis"]
   Impact --> Sqlgrep["sqlgrep"]
   CLI --> NoHiddenRewrite["CLI No Hidden SQL Rewrite"]
   CLI --> Migration["Migration Artifact"]
   Migration --> MigrationQuery["Migration Query Generation"]
+  CLI --> ScaffoldGuidance["Scaffold As Guidance"]
 
   Drivers --> ThinAdapter["Thin Driver Adapter"]
   ThinAdapter --> NamedParams["Named Parameter Binding"]
@@ -145,6 +156,24 @@ flowchart TD
   AstPolicy --> Sqlgrep
   NoAgentFiles --> ErrorModes
   PublicApiHelp --> ErrorModes
+  Repo --> HumanCommand["Human-First Command Interface"]
+  HumanCommand --> PublicApiHelp
+  HumanCommand --> ErrorModes
+  HumanCommand --> PassiveFailure
+  PassiveFailure --> HumanCommand
+  PassiveFailure --> Drift
+  PassiveFailure --> MapperType
+  Repo --> PrimaryContact["Primary Contact"]
+  Repo --> SecondaryContact["Secondary Contact"]
+  Repo --> TertiaryContact["Tertiary Contact"]
+  PrimaryContact --> PublicApiHelp
+  SecondaryContact --> RFBA
+  SecondaryContact --> ScaffoldGuidance
+  SecondaryContact --> FeatureBoundary
+  SecondaryContact --> QueryBoundary
+  TertiaryContact --> Drift
+  TertiaryContact --> PassiveFailure
+  TertiaryContact --> MapperType
   FileBackedSql --> NamedParams
   FileBackedSql --> SafeSort
 ```
@@ -152,9 +181,17 @@ flowchart TD
 ## Review Checks
 
 - Repository-wide concepts must apply consistently to every package category.
+- Concept review must identify which customer contact level is being judged: primary contact for Ashiba as a library/CLI, secondary contact for scaffolded customer code, or tertiary contact for validation and recovery after customer edits.
+- Primary-contact review checks whether package names, commands, docs, help, runtime boundaries, and the generated-code promise are understandable before the customer has learned Ashiba deeply.
+- Secondary-contact review checks the scaffolded code as customer-owned code. File placement, names, comments, TODOs, and extension points should make the intended maintenance path obvious to beginners and customer-side AI. Customer tests should cover this level because library tests alone do not prove the scaffold guides real users.
+- Tertiary-contact review checks what happens after the customer changes the scaffolded world. Drift, broken mapping, stale metadata, and unsafe SQL/DDL changes should be detected through ordinary local checks, hooks, or CI, and recovery guidance should be fast enough for iterative human and AI development.
 - Visible SQL includes editability; scaffolded SQL and adjacent generated code must remain easy for humans and AI agents to change.
 - Watch-mode automatic regeneration should not silently rewrite schema/model artifacts; drift should fail explicitly with cause and next action.
 - Non-continuous human or AI work must have a passive failure surface in the ordinary path. If DDL, SQL, mapper, or query contract edits leave stale follow-up artifacts, normal tests, gates, or metadata guards should detect the breakage and point to recovery rather than relying on remembered refresh commands or careful behavior.
+- Passive failure surface is a core Ashiba safety concept, not just a convenience command. A check that exists but depends on humans remembering to run it is not yet passive; it becomes passive when connected to a fast local loop, full local gate, hook, CI, or runtime guard that is part of ordinary work.
+- Passive checks must stay fast enough to remain in the edit loop. If a diagnostic becomes slow, Ashiba should expose timing/coverage information and keep a smaller fast path available.
+- Recovery is part of detection. A good error points to the next command or mechanical fix, and a safe mechanical recovery should be available as an explicit refresh/fix command where possible.
+- Gate scaffolding must not generate a CI workflow or hook that fails because Ashiba's own package scripts are missing. The default path should create a complete passive gate surface, and advanced target flags must still preserve a working customer path.
 - `ashiba init` may create ordinary project documentation, but Ashiba must not distribute AI behavior files such as `AGENTS.md`, `SKILL.md`, skills, or prompts; AI guidance should come from visible scaffolds, contracts, and AI-oriented errors.
 - Ashiba Runtime Zero applies to `@ashiba/cli` generated application code, not to every driver or extension package.
 - Tooling AST dependencies, including `rawsql-ts` core, are allowed for Ashiba development packages and must not leak into generated application runtime code.
@@ -162,11 +199,18 @@ flowchart TD
 - CLI concepts must cover practical ORM-like development support through scaffolding and checks, without implying an ORM runtime.
 - RFBA must separate files by reviewable feature/query behavior using VSA-style boundaries, not by technical layers such as repository/service/model as the primary layout.
 - Scaffolding must fix a repeatable review grain because review scope is subjective; prose concepts alone are not enough.
+- Scaffolding must also be reviewed as customer guidance. The generated layout should make the next reasonable edit location obvious, especially for cross-cutting seams such as SQL logging, adapters, test support, and query boundaries.
+- Names are guardrails. File names, directory names, function names, and command names should be optimized for discovery and maintenance by beginners and customer-side AI, not only for library-internal neatness.
+- CLI scaffolding should be preferred over AI inference when the project shape is mechanical. Generated code and explicit holes should make the intended extension point obvious before prose documentation is needed.
 - A feature may contain multiple query boundaries, and `feature query scaffold` must support adding SQL behavior to an existing feature without forcing a new feature boundary.
 - Feature boundaries may be subgrouped under the feature root; imports to shared seams or app-level test support should use root-stable aliases instead of depth-sensitive relative paths.
 - Query boundaries should expose typed DTO/mapped result contracts to feature code and provide stable query IDs or names for debugging, drift checks, logs, performance evidence, and AI-oriented errors.
 - Public exported functions must have JSDoc, and CLI commands must expose help before running mutating or expensive work.
 - CLI help may be split into human-oriented and AI-oriented forms when that makes command contracts safer to consume.
+- Ashiba must not require beginners to memorize the full command surface before they can diagnose ordinary drift or broken generated assets. Specialized commands may exist, but the product should also expose a small, memorable diagnostic entry point that is safe to try first and that can point to narrower recovery commands when needed.
+- Human-first command design is also AI-friendly command design: if a person can discover what to run, why it failed, and what to try next, an AI agent can usually follow the same surface without repository-specific hidden knowledge.
+- The fast local diagnostic path is more important than editor write-feel. IntelliSense can help, but Ashiba's primary guardrails are visible names, generated boundaries, fast checks, clear errors, and explicit recovery commands.
+- Migration generation is optional review support. Ashiba may emit migration SQL and risk reports, but it must not present itself as the owner of applying migrations, rollback policy, deployment timing, or migration-platform governance.
 - Core CLI scaffolding must not hide SQL transformation or dynamic SQL building inside generated application code; keep SQL visible and use driver/extension concepts for their bounded responsibilities.
 - Driver package concepts must stay thin and must not own business SQL.
 - Driver execution boundaries should not expose arbitrary SQL string input; use file-backed/generated query source objects and keep the final driver SQL string internal.

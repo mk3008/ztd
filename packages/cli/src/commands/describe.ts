@@ -1,9 +1,11 @@
 import type { Command } from 'commander';
 
 export const COMMANDS = [
+  { name: 'check', summary: 'Run the human-first Ashiba diagnostic gate.', useCase: 'Use the fast local loop while editing; add --full before push, review, or CI to include mapper tests.' },
   { name: 'init', summary: 'Create a SQL-first starter after the user has chosen a DBMS and driver.', useCase: 'Start a new Ashiba project with visible SQL, DDL, ZTD test support, and no AI behavior files.' },
   { name: 'config', summary: 'Emit Ashiba project configuration.', useCase: 'Create or inspect ashiba.config.json; use --compact for machine-readable one-line JSON.' },
   { name: 'describe command', summary: 'Describe one command or list the command catalog for humans and AI agents.', useCase: 'Let an AI or reviewer understand the intended command surface before choosing a workflow.' },
+  { name: 'gate scaffold', summary: 'Scaffold the standard passive check gates without adding hook libraries.', useCase: 'Run this once to create package scripts, GitHub Actions, and a native git hook file so drift is caught in the ordinary path.' },
   { name: 'ddl migration generate', summary: 'Compare DDL snapshot files or recursive DDL directories, generate reviewable migration SQL, and include migration risk info.', useCase: 'Review a schema change before DB deployment without connecting to or mutating a database.' },
   { name: 'query uses table', summary: 'Find SQL assets that reference a table.', useCase: 'Estimate impact before renaming, dropping, or changing a table.' },
   { name: 'query uses column', summary: 'Find SQL assets that reference a column.', useCase: 'Estimate impact before renaming, dropping, changing type/nullability, or changing semantics of a column.' },

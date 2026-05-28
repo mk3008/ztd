@@ -48,7 +48,6 @@ writePackageJson(starterRoot, {
   type: 'module',
   packageManager: 'pnpm@10.19.0',
   scripts: {
-    'check:ashiba': 'ashiba project check',
     typecheck: 'tsc --noEmit -p tsconfig.json',
     test: 'vitest run',
     'test:mapper': 'vitest run src/features -t ZTD',
@@ -88,6 +87,7 @@ run(corepack, [
   '--with-demo-ddl',
   '--with-migration-demo-ddl',
 ], starterRoot);
+run(corepack, ['pnpm', 'exec', 'ashiba', 'gate', 'scaffold'], starterRoot);
 
 assertFileContains(path.join(starterRoot, 'compose.yaml'), '${ASHIBA_TEST_DB_PORT:-5432}:5432');
 assertFileContains(path.join(starterRoot, 'compose.yaml'), 'network_mode: bridge');
@@ -126,10 +126,12 @@ assertPathMissing(path.join(starterRoot, 'src', 'features', 'smoke'));
 assertFileContains(path.join(starterRoot, 'package.json'), '@ashiba/driver-adapter-pg');
 assertFileContains(path.join(starterRoot, 'package.json'), '@ashiba/testkit-adapter-pg');
 assertFileContains(path.join(starterRoot, 'package.json'), '@ashiba/cli');
-assertFileContains(path.join(starterRoot, 'package.json'), '"check:ashiba": "ashiba project check"');
+assertFileContains(path.join(starterRoot, 'package.json'), '"ashiba:check": "node node_modules/@ashiba/cli/dist/index.js check"');
+assertFileContains(path.join(starterRoot, 'package.json'), '"ashiba:verify": "node node_modules/@ashiba/cli/dist/index.js check --full --mapper-test-command \\"vitest run\\""');
+assertFileContains(path.join(starterRoot, '.github', 'workflows', 'ashiba-contract.yml'), 'pnpm ashiba:verify');
 assertFileContains(path.join(starterRoot, 'README.md'), 'docker compose up -d');
 
-run(corepack, ['pnpm', 'check:ashiba'], starterRoot);
+run(corepack, ['pnpm', 'ashiba:check'], starterRoot);
 run(corepack, ['pnpm', 'typecheck'], starterRoot);
 
 copyFileSync(path.join(starterRoot, '.env.example'), path.join(starterRoot, '.env'));
@@ -166,7 +168,8 @@ try {
   assertFileContains(path.join(starterRoot, 'src', 'features', 'users-list', 'queries', 'list', 'generated', 'query.meta.ts'), '"postgres"');
   assertFileContains(path.join(starterRoot, 'src', 'features', 'users-list', 'queries', 'list', 'tests', 'list.boundary.ztd.test.ts'), "from '#tests/support/ztd/harness.js'");
   run(corepack, ['pnpm', 'exec', 'ashiba', 'feature', 'query', 'refresh', '--feature', 'users-list', '--query', 'list', '--dry-run'], starterRoot);
-  run(corepack, ['pnpm', 'test'], starterRoot, withDocker ? {} : { ASHIBA_SKIP_DB_BACKED_TESTS: '1' });
+  run(corepack, ['pnpm', 'ashiba:check'], starterRoot);
+  run(corepack, ['pnpm', 'ashiba:verify'], starterRoot, withDocker ? {} : { ASHIBA_SKIP_DB_BACKED_TESTS: '1' });
   run(corepack, ['pnpm', 'test:mapper'], starterRoot, withDocker ? {} : { ASHIBA_SKIP_DB_BACKED_TESTS: '1' });
   run(corepack, ['pnpm', 'typecheck'], starterRoot);
   scaffoldFeature('users-insert', 'insert');
@@ -184,10 +187,24 @@ try {
   assertFileContains(path.join(starterRoot, 'src', 'features', 'users-insert', 'queries', 'insert-users', 'tests', 'generated', 'mapping.cases.ts'), 'external_account_id: "9223372036854775807"');
   assertFileContains(path.join(starterRoot, 'src', 'features', 'users-insert', 'queries', 'insert-users', 'tests', 'generated', 'mapping.cases.ts'), 'external_account_id: "-9223372036854775808"');
   assertFileContains(path.join(starterRoot, 'src', 'features', 'users-insert', 'queries', 'insert-users', 'tests', 'cases', 'logic.case.ts'), 'Human/AI-owned SQL logic cases');
-  run(corepack, ['pnpm', 'check:ashiba'], starterRoot);
-  run(corepack, ['pnpm', 'test'], starterRoot, withDocker ? {} : { ASHIBA_SKIP_DB_BACKED_TESTS: '1' });
+  run(corepack, ['pnpm', 'ashiba:check'], starterRoot);
+  run(corepack, ['pnpm', 'ashiba:verify'], starterRoot, withDocker ? {} : { ASHIBA_SKIP_DB_BACKED_TESTS: '1' });
   run(corepack, ['pnpm', 'test:mapper'], starterRoot, withDocker ? {} : { ASHIBA_SKIP_DB_BACKED_TESTS: '1' });
   run(corepack, ['pnpm', 'typecheck'], starterRoot);
+
+  const ddlPath = path.join(starterRoot, 'db', 'ddl', 'public.sql');
+  const originalDdl = readFileSync(ddlPath, 'utf8');
+  writeFileSync(
+    ddlPath,
+    originalDdl.replace('external_account_id bigint not null', 'external_account_id bigint not null,\n  risk_score integer not null'),
+    'utf8',
+  );
+  const failedCheck = runExpectFailure(process.execPath, ['node_modules/@ashiba/cli/dist/index.js', 'check'], starterRoot);
+  if (!failedCheck.includes('ASHIBA_PROJECT_INSERT_REQUIRED_COLUMN_OMITTED')) {
+    throw new Error(`Expected passive gate to catch omitted required INSERT column. Output:\n${failedCheck}`);
+  }
+  writeFileSync(ddlPath, originalDdl, 'utf8');
+
   scaffoldFeature('users-get-by-id', 'get-by-id');
   assertFileContains(path.join(starterRoot, 'src', 'features', 'users-get-by-id', 'queries', 'get-by-id', 'get-by-id.sql'), 'from "public"."users"');
   assertFileContains(path.join(starterRoot, 'src', 'features', 'users-get-by-id', 'queries', 'get-by-id', 'get-by-id.sql'), 'where');
@@ -328,6 +345,23 @@ function runDirect(command, args, cwd, extraEnv = {}) {
     shell: false,
     env: { ...process.env, ...extraEnv },
   });
+}
+
+function runExpectFailure(command, args, cwd, extraEnv = {}) {
+  try {
+    execFileSync(command, args, {
+      cwd,
+      encoding: 'utf8',
+      stdio: 'pipe',
+      shell: false,
+      env: { ...process.env, ...extraEnv },
+    });
+  } catch (error) {
+    const stdout = error?.stdout ? String(error.stdout) : '';
+    const stderr = error?.stderr ? String(error.stderr) : '';
+    return `${stdout}${stderr}`;
+  }
+  throw new Error(`Expected command to fail: ${command} ${args.join(' ')}`);
 }
 
 function readPackageJson(directory) {

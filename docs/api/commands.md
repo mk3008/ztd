@@ -16,6 +16,23 @@ npx ashiba <command> --help
 npx ashiba describe command --format json
 ```
 
+## ashiba check
+
+Run the human-first diagnostic gate. Use the fast check while editing and the full check before push, review, or CI.
+
+```bash
+npx ashiba check
+npx ashiba check --full
+```
+
+## ashiba gate scaffold
+
+Scaffold the standard passive check gates without adding hook libraries.
+
+```bash
+npx ashiba gate scaffold
+```
+
 ## ashiba init
 
 Create a SQL-first starter after choosing a DBMS and driver.
