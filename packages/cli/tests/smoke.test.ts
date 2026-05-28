@@ -952,9 +952,31 @@ describe('@ashiba/cli smoke', () => {
       expect(result.checks.contract?.ok).toBe(true);
       expect(result.checks.featureTests?.ok).toBe(true);
       expect(result.checks.generatedMapper?.ok).toBe(true);
+      expect(result.checks.generatedMapper).toBe(result.checks.contract?.mapperCheck);
       expect(result.checks.lint?.ok).toBe(true);
       expect(result.checks.featureTests?.checked[0]?.query).toBe('list');
       expect(result.checks.generatedMapper?.checked[0]?.query).toBe('list');
+      expect(result.durationMs).toBeGreaterThanOrEqual(0);
+      expect(result.coverage).toMatchObject({
+        ddlFiles: 1,
+        sqlFiles: 1,
+        mapperQueries: 1,
+        catalogSpecs: 1,
+        featureTestQueries: 1,
+        lintFiles: 1,
+      });
+      expect(result.timings.map((timing) => timing.phase)).toEqual([
+        'config',
+        'ddl-model',
+        'ddl-diagnostics',
+        'contract',
+        'feature-tests',
+        'sql-lint',
+      ]);
+      const text = formatProjectCheckResult(result);
+      expect(text).toContain('duration ms:');
+      expect(text).toContain('coverage: ddlFiles=1, sqlFiles=1, mapperQueries=1, catalogSpecs=1, featureTestQueries=1, lintFiles=1');
+      expect(text).toContain('timings:');
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }

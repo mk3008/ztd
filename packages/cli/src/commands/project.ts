@@ -1,12 +1,12 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 import type { Command } from 'commander';
 import { InsertQuery, MultiQuerySplitter, SqlParser, TableSource, type SourceExpression } from 'rawsql-ts';
 import { runCheckContract, type CheckContractResult } from './check-contract.js';
 import { loadProjectPathConfig, type ProjectPathConfig } from './config.js';
 import { loadDdlSchemaModelWithDiagnostics, type DdlSchemaColumn, type DdlSchemaDiagnosticsResult, type DdlSchemaTable } from './ddl-schema-model.js';
 import {
-  runFeatureGeneratedMapperCheck,
   runFeatureTestsCheck,
   type FeatureGeneratedMapperCheckResult,
   type FeatureTestsCheckResult,
@@ -27,6 +27,19 @@ export interface ProjectCheckResult {
   kind: 'project-check';
   ok: boolean;
   rootDir: string;
+  durationMs: number;
+  timings: Array<{
+    phase: string;
+    durationMs: number;
+  }>;
+  coverage: {
+    ddlFiles: number;
+    sqlFiles: number;
+    mapperQueries: number;
+    catalogSpecs: number;
+    featureTestQueries: number;
+    lintFiles: number;
+  };
   errors: ProjectCheckIssue[];
   warnings: ProjectCheckIssue[];
   checks: {
@@ -47,6 +60,18 @@ export interface ProjectCheckOptions {
   rootDir?: string;
   format?: 'text' | 'json';
   warningsAsErrors?: boolean;
+}
+
+interface ProjectCheckContext {
+  rootDir: string;
+  config: ProjectPathConfig;
+  ddlSchema: DdlSchemaDiagnosticsResult;
+  sqlRoots: Array<{
+    configured: string;
+    absolute: string;
+    files: string[];
+  }>;
+  sqlFiles: string[];
 }
 
 export function registerProjectCommand(program: Command): void {
@@ -70,62 +95,85 @@ export function registerProjectCommand(program: Command): void {
 }
 
 export function runProjectCheck(options: ProjectCheckOptions = {}): ProjectCheckResult {
+  const startedAt = performance.now();
   const rootDir = path.resolve(options.rootDir ?? '.');
   const errors: ProjectCheckIssue[] = [];
   const warnings: ProjectCheckIssue[] = [];
-  const pathConfig = loadProjectPathConfig(rootDir);
+  const timings: ProjectCheckResult['timings'] = [];
+  const coverage: ProjectCheckResult['coverage'] = {
+    ddlFiles: 0,
+    sqlFiles: 0,
+    mapperQueries: 0,
+    catalogSpecs: 0,
+    featureTestQueries: 0,
+    lintFiles: 0,
+  };
+  const pathConfig = measurePhase(timings, 'config', () => loadProjectPathConfig(rootDir));
   const checks: ProjectCheckResult['checks'] = { config: pathConfig };
 
-  const ddlSchema = loadDdlSchemaModelWithDiagnostics(rootDir);
-  const ddlIssueDiagnostics = [
-    ...ddlSchema.diagnostics.map((issue) => ({ ...issue })),
-    ...insertColumnOwnershipIssues(rootDir, ddlSchema),
-  ];
-  const ddlDiagnostics = formatDdlDiagnostics(rootDir, ddlSchema, ddlIssueDiagnostics);
-  checks.ddlDiagnostics = ddlDiagnostics;
-  appendIssues(errors, warnings, ddlDiagnostics.diagnostics);
+  const ddlSchema = measurePhase(timings, 'ddl-model', () => loadDdlSchemaModelWithDiagnostics(rootDir));
+  const context = buildProjectCheckContext(rootDir, pathConfig, ddlSchema);
+  coverage.ddlFiles = ddlSchema.files.length;
+  coverage.sqlFiles = context.sqlFiles.length;
 
-  try {
-    checks.contract = runOptionalContractCheck(rootDir, pathConfig);
-    appendIssues(errors, warnings, contractIssues(checks.contract));
-  } catch (error) {
-    errors.push(checkExecutionIssue('ASHIBA_PROJECT_CONTRACT_CHECK_ERROR', 'Contract check could not complete.', error));
-  }
+  measurePhase(timings, 'ddl-diagnostics', () => {
+    const ddlIssueDiagnostics = [
+      ...ddlSchema.diagnostics.map((issue) => ({ ...issue })),
+      ...insertColumnOwnershipIssues(context),
+    ];
+    const ddlDiagnostics = formatDdlDiagnostics(rootDir, ddlSchema, ddlIssueDiagnostics);
+    checks.ddlDiagnostics = ddlDiagnostics;
+    appendIssues(errors, warnings, ddlDiagnostics.diagnostics);
+  });
 
-  try {
-    const featureTests = runOptionalFeatureTestsCheck(rootDir, pathConfig);
-    if (featureTests) {
-      checks.featureTests = featureTests;
-      appendIssues(errors, warnings, featureTestsIssues(featureTests));
+  measurePhase(timings, 'contract', () => {
+    try {
+      checks.contract = runOptionalContractCheck(rootDir, pathConfig);
+      coverage.mapperQueries = checks.contract.mapperCheck.checked.length;
+      coverage.catalogSpecs = checks.contract.catalogCheck.checked.length;
+      if (checks.contract.mapperCheck.checked.length > 0) {
+        checks.generatedMapper = checks.contract.mapperCheck;
+      }
+      appendIssues(errors, warnings, contractIssues(checks.contract));
+      appendIssues(errors, warnings, generatedMapperIssues(checks.contract.mapperCheck));
+    } catch (error) {
+      errors.push(checkExecutionIssue('ASHIBA_PROJECT_CONTRACT_CHECK_ERROR', 'Contract check could not complete.', error));
     }
-  } catch (error) {
-    errors.push(checkExecutionIssue('ASHIBA_PROJECT_FEATURE_TESTS_CHECK_ERROR', 'Feature tests check could not complete.', error));
-  }
+  });
 
-  try {
-    const generatedMapper = runOptionalFeatureGeneratedMapperCheck(rootDir, pathConfig);
-    if (generatedMapper) {
-      checks.generatedMapper = generatedMapper;
-      appendIssues(errors, warnings, generatedMapperIssues(generatedMapper));
+  measurePhase(timings, 'feature-tests', () => {
+    try {
+      const featureTests = runOptionalFeatureTestsCheck(rootDir, pathConfig);
+      if (featureTests) {
+        checks.featureTests = featureTests;
+        coverage.featureTestQueries = featureTests.checked.length;
+        appendIssues(errors, warnings, featureTestsIssues(featureTests));
+      }
+    } catch (error) {
+      errors.push(checkExecutionIssue('ASHIBA_PROJECT_FEATURE_TESTS_CHECK_ERROR', 'Feature tests check could not complete.', error));
     }
-  } catch (error) {
-    errors.push(checkExecutionIssue('ASHIBA_PROJECT_GENERATED_MAPPER_CHECK_ERROR', 'Generated mapper check could not complete.', error));
-  }
+  });
 
-  try {
-    const lint = runOptionalSqlLint(rootDir, pathConfig);
-    if (lint) {
-      checks.lint = lint;
-      appendIssues(errors, warnings, lintIssues(lint));
+  measurePhase(timings, 'sql-lint', () => {
+    try {
+      const lint = runOptionalSqlLint(context);
+      if (lint) {
+        checks.lint = lint;
+        coverage.lintFiles = lint.files.length;
+        appendIssues(errors, warnings, lintIssues(lint));
+      }
+    } catch (error) {
+      errors.push(checkExecutionIssue('ASHIBA_PROJECT_SQL_LINT_ERROR', 'SQL lint could not complete.', error));
     }
-  } catch (error) {
-    errors.push(checkExecutionIssue('ASHIBA_PROJECT_SQL_LINT_ERROR', 'SQL lint could not complete.', error));
-  }
+  });
 
   return {
     kind: 'project-check',
     ok: errors.length === 0 && (options.warningsAsErrors !== true || warnings.length === 0),
     rootDir,
+    durationMs: roundDuration(performance.now() - startedAt),
+    timings,
+    coverage,
     errors,
     warnings,
     checks,
@@ -136,8 +184,10 @@ export function formatProjectCheckResult(result: ProjectCheckResult, options: Pr
   const lines = [
     `Ashiba project check: ${result.ok ? 'ok' : 'failed'}`,
     `- root: ${result.rootDir}`,
+    `- duration ms: ${result.durationMs}`,
     `- feature root: ${result.checks.config.featureRoot}`,
     `- SQL roots: ${result.checks.config.sqlRoots.join(', ')}`,
+    `- coverage: ddlFiles=${result.coverage.ddlFiles}, sqlFiles=${result.coverage.sqlFiles}, mapperQueries=${result.coverage.mapperQueries}, catalogSpecs=${result.coverage.catalogSpecs}, featureTestQueries=${result.coverage.featureTestQueries}, lintFiles=${result.coverage.lintFiles}`,
     `- errors: ${result.errors.length}`,
     `- warnings: ${result.warnings.length}${options.warningsAsErrors ? ' (treated as errors)' : ''}`,
     `- contract: ${result.checks.contract ? (result.checks.contract.ok ? 'ok' : 'failed') : 'skipped'}`,
@@ -146,6 +196,9 @@ export function formatProjectCheckResult(result: ProjectCheckResult, options: Pr
     `- DDL diagnostics: ${result.checks.ddlDiagnostics ? (result.checks.ddlDiagnostics.diagnostics.length === 0 ? 'ok' : 'issues') : 'skipped'}`,
     `- SQL lint: ${result.checks.lint ? (result.checks.lint.ok ? 'ok' : 'failed') : 'skipped'}`,
   ];
+  if (result.timings.length > 0) {
+    lines.push(`- timings: ${result.timings.map((timing) => `${timing.phase}=${timing.durationMs}ms`).join(', ')}`);
+  }
   if (result.errors.length > 0) {
     lines.push('', 'Errors:');
     for (const issue of result.errors) lines.push(formatIssue(issue));
@@ -198,43 +251,28 @@ function runOptionalFeatureTestsCheck(rootDir: string, config: ProjectPathConfig
   }
 }
 
-function runOptionalFeatureGeneratedMapperCheck(rootDir: string, config: ProjectPathConfig): FeatureGeneratedMapperCheckResult | undefined {
-  try {
-    return runFeatureGeneratedMapperCheck({ rootDir, featureRoot: config.featureRoot });
-  } catch (error) {
-    if (isFeatureSurfaceMissing(error, config.featureRoot)) return undefined;
-    throw error;
-  }
-}
-
-function runOptionalSqlLint(rootDir: string, config: ProjectPathConfig): LintResult | undefined {
-  const roots = config.sqlRoots
-    .map((root) => ({ configured: root, absolute: path.join(rootDir, root) }))
-    .filter((root) => existsSync(root.absolute) && collectSqlFiles(root.absolute).length > 0);
+function runOptionalSqlLint(context: ProjectCheckContext): LintResult | undefined {
+  const roots = context.sqlRoots.filter((root) => root.files.length > 0);
   if (roots.length === 0) {
     return undefined;
   }
-  const files = roots.flatMap((root) => runLint(root.configured, { rootDir }).files);
+  const files = roots.flatMap((root) => runLint(root.configured, { rootDir: context.rootDir }).files);
   return {
-    rootDir,
-    target: config.sqlRoots.join(','),
+    rootDir: context.rootDir,
+    target: context.config.sqlRoots.join(','),
     files,
     ok: files.every((file) => file.ok),
   };
 }
 
-function insertColumnOwnershipIssues(rootDir: string, ddlSchema: DdlSchemaDiagnosticsResult): ProjectCheckIssue[] {
-  const config = loadProjectPathConfig(rootDir);
-  const sqlRoots = config.sqlRoots
-    .map((root) => path.join(rootDir, root))
-    .filter((root) => existsSync(root));
-  if (sqlRoots.length === 0 || ddlSchema.tables.size === 0) {
+function insertColumnOwnershipIssues(context: ProjectCheckContext): ProjectCheckIssue[] {
+  if (context.sqlFiles.length === 0 || context.ddlSchema.tables.size === 0) {
     return [];
   }
 
   const issues: ProjectCheckIssue[] = [];
-  for (const file of sqlRoots.flatMap((root) => collectSqlFiles(root))) {
-    const relativeFile = normalizePath(path.relative(rootDir, file));
+  for (const file of context.sqlFiles) {
+    const relativeFile = normalizePath(path.relative(context.rootDir, file));
     let statements: string[];
     try {
       statements = MultiQuerySplitter.split(readFileSync(file, 'utf8')).getNonEmpty().map((query) => query.sql);
@@ -263,7 +301,7 @@ function insertColumnOwnershipIssues(rootDir: string, ddlSchema: DdlSchemaDiagno
       if (!target) {
         continue;
       }
-      const table = resolveTable(ddlSchema, target.schema, target.table);
+      const table = resolveTable(context.ddlSchema, target.schema, target.table);
       const insertColumns = parsed.insertClause.columns?.map((column) => normalizeIdentifier(column.name));
       if (!table || !insertColumns) {
         continue;
@@ -308,6 +346,42 @@ function insertColumnOwnershipIssues(rootDir: string, ddlSchema: DdlSchemaDiagno
     }
   }
   return dedupeIssues(issues);
+}
+
+function buildProjectCheckContext(
+  rootDir: string,
+  config: ProjectPathConfig,
+  ddlSchema: DdlSchemaDiagnosticsResult,
+): ProjectCheckContext {
+  const sqlRoots = config.sqlRoots
+    .map((root) => {
+      const absolute = path.join(rootDir, root);
+      return {
+        configured: root,
+        absolute,
+        files: existsSync(absolute) ? collectSqlFiles(absolute) : [],
+      };
+    });
+  return {
+    rootDir,
+    config,
+    ddlSchema,
+    sqlRoots,
+    sqlFiles: uniqueSorted(sqlRoots.flatMap((root) => root.files)),
+  };
+}
+
+function measurePhase<T>(timings: ProjectCheckResult['timings'], phase: string, run: () => T): T {
+  const startedAt = performance.now();
+  try {
+    return run();
+  } finally {
+    timings.push({ phase, durationMs: roundDuration(performance.now() - startedAt) });
+  }
+}
+
+function roundDuration(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 function contractIssues(result: CheckContractResult): ProjectCheckIssue[] {
@@ -467,6 +541,10 @@ function collectSqlFiles(dir: string): string[] {
     }
   }
   return files.sort();
+}
+
+function uniqueSorted(values: string[]): string[] {
+  return [...new Set(values)].sort();
 }
 
 function isFeatureSurfaceMissing(error: unknown, featureRoot: string): boolean {
