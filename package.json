@@ -39,5 +39,10 @@
     "typescript": "^5.8.2",
     "vitepress": "^1.6.4",
     "vitest": "^4.0.7"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite@5>esbuild": "^0.25.0"
+    }
   }
 }
