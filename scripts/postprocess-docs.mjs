@@ -42,7 +42,7 @@ async function ensureIndexFrontMatter(apiDir) {
 }
 
 async function writeCommandApiPage(apiDir) {
-  const commands = await loadCommandCatalog();
+  const { commands, program } = await loadCommandApiRuntime();
   const commandsPath = path.join(apiDir, 'commands.md');
   await fs.writeFile(commandsPath, `${[
     '---',
@@ -54,13 +54,13 @@ async function writeCommandApiPage(apiDir) {
     '',
     '# Command API',
     '',
-    'Ashiba command contracts are exposed by the CLI command catalog.',
+    'Ashiba command contracts are exposed by the same CLI command catalog used by `ashiba describe command` and command help.',
     '',
     'This page is for third-party readers who need to understand what commands exist, when to use them, and what their arguments and options mean.',
     '',
     'The lower-level TypeScript API reference is also generated, but pages such as `cli/src/functions/main` describe exported implementation functions, not the CLI command contract.',
     '',
-    'Use command help for the exact runtime parser behavior and `ashiba describe command --format json` for machine-readable command descriptors.',
+    'Each command section includes the real Commander help output so the docs do not maintain a separate argument or option explanation.',
     '',
     '```bash',
     'npx ashiba --help',
@@ -70,19 +70,27 @@ async function writeCommandApiPage(apiDir) {
     '',
     '## Command List',
     '',
-    ...commands.flatMap(renderCommandSpec),
+    ...commands.flatMap((command) => renderCommandSpec(command, program)),
   ].join('\n')}`, 'utf8');
   console.log('[postprocess-docs] Wrote generated/api/commands.md');
 }
 
-async function loadCommandCatalog() {
+async function loadCommandApiRuntime() {
   const root = process.cwd();
   const catalogPath = path.join(root, 'packages', 'cli', 'dist', 'commands', 'command-catalog.js');
-  const module = await import(pathToFileURL(catalogPath).href);
-  return module.COMMANDS;
+  const indexPath = path.join(root, 'packages', 'cli', 'dist', 'index.js');
+  const [catalogModule, cliModule] = await Promise.all([
+    import(pathToFileURL(catalogPath).href),
+    import(pathToFileURL(indexPath).href),
+  ]);
+  return {
+    commands: catalogModule.COMMANDS,
+    program: cliModule.buildProgram(),
+  };
 }
 
-function renderCommandSpec(command) {
+function renderCommandSpec(command, program) {
+  const help = getCommandHelp(program, command.name);
   const lines = [
     `## npx ashiba ${command.name}`,
     '',
@@ -90,52 +98,49 @@ function renderCommandSpec(command) {
     '',
     `**Use when:** ${command.useCase}`,
     '',
-    '**Usage**',
+    '**CLI Help**',
     '',
-    '```bash',
-    `npx ${command.usage}`,
+    '```text',
+    help.trimEnd(),
     '```',
     '',
   ];
 
-  if (command.arguments?.length) {
-    lines.push('**Arguments**', '', '| Name | Required | Meaning |', '| --- | --- | --- |');
-    for (const argument of command.arguments) {
-      lines.push(`| \`${escapeMarkdownCell(argument.name)}\` | ${argument.required ? 'yes' : 'no'} | ${escapeMarkdownCell(argument.description)} |`);
-    }
-    lines.push('');
-  }
-
-  if (command.options?.length) {
-    lines.push('**Options**', '', '| Option | Default | Meaning |', '| --- | --- | --- |');
-    for (const option of command.options) {
-      const defaultValue = option.defaultValue ? `\`${escapeMarkdownCell(option.defaultValue)}\`` : '';
-      lines.push(`| \`${escapeMarkdownCell(option.flags)}\` | ${defaultValue} | ${escapeMarkdownCell(option.description)} |`);
-    }
-    lines.push('');
-  }
-
-  if (command.notes?.length) {
-    lines.push('**Combinations And Notes**', '');
-    for (const note of command.notes) {
-      lines.push(`- ${note}`);
-    }
-    lines.push('');
-  }
-
-  if (command.examples?.length) {
-    lines.push('**Examples**', '', '```bash', ...command.examples, '```', '');
-  }
-
   return lines;
 }
 
-function escapeMarkdownCell(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('|', '\\|');
+function getCommandHelp(program, name) {
+  const command = findCommand(program, name);
+  if (!command) {
+    throw new Error(`Command registered in catalog but missing from CLI help: ${name}`);
+  }
+  return captureCommandHelp(command);
+}
+
+function findCommand(program, name) {
+  const parts = name.split(' ');
+  let current = program;
+  for (const part of parts) {
+    current = current.commands.find((command) => command.name() === part);
+    if (!current) {
+      return undefined;
+    }
+  }
+  return current;
+}
+
+function captureCommandHelp(command) {
+  let output = '';
+  command.configureOutput({
+    writeOut: (text) => {
+      output += text;
+    },
+    writeErr: (text) => {
+      output += text;
+    },
+  });
+  command.outputHelp();
+  return output;
 }
 
 async function wrapMarkdownWithVPre(dir) {

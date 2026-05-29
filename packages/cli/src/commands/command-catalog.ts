@@ -1,3 +1,5 @@
+import type { Command } from 'commander';
+
 export interface CommandArgumentSpec {
   name: string;
   required: boolean;
@@ -19,6 +21,73 @@ export interface CommandSpec {
   options?: CommandOptionSpec[];
   notes?: string[];
   examples?: string[];
+}
+
+export function getCommandSpec(name: string): CommandSpec {
+  const command = COMMANDS.find((candidate) => candidate.name === name);
+  if (!command) {
+    throw new Error(`Ashiba command catalog entry is missing: ${name}`);
+  }
+  return command;
+}
+
+export function getCommandSummary(name: string): string {
+  return getCommandSpec(name).summary.replace(/\.$/, '');
+}
+
+export function formatCommandCatalogHelp(name: string): string {
+  const command = getCommandSpec(name);
+  const lines = [
+    '',
+    'Catalog use case:',
+    `  ${command.useCase}`,
+  ];
+
+  if (command.notes?.length) {
+    lines.push('', 'Combinations and notes:');
+    for (const note of command.notes) {
+      lines.push(`  - ${note}`);
+    }
+  }
+
+  if (command.examples?.length) {
+    lines.push('', 'Examples:');
+    for (const example of command.examples) {
+      lines.push(`  ${example}`);
+    }
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+export function formatCommonUseCases(names: readonly string[]): string {
+  return names.map((name) => {
+    const command = getCommandSpec(name);
+    return `  ${command.usage.padEnd(30)} ${command.useCase}`;
+  }).join('\n');
+}
+
+export function applyCommandCatalogToProgram(program: Command): void {
+  for (const spec of COMMANDS) {
+    const command = findCommandByCatalogName(program, spec.name);
+    if (!command) {
+      continue;
+    }
+    command.description(getCommandSummary(spec.name));
+    command.addHelpText('after', formatCommandCatalogHelp(spec.name));
+  }
+}
+
+function findCommandByCatalogName(program: Command, name: string): Command | undefined {
+  const parts = name.split(' ');
+  let current: Command | undefined = program;
+  for (const part of parts) {
+    current = current.commands.find((command) => command.name() === part);
+    if (!current) {
+      return undefined;
+    }
+  }
+  return current;
 }
 
 const commonRoot: CommandOptionSpec = { flags: '--root-dir <path>', description: 'Project root directory.', defaultValue: '.' };

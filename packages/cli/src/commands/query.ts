@@ -93,11 +93,6 @@ Use cases:
   uses
     .command('table <target>')
     .description('Find statements that use a table target')
-    .addHelpText('after', `
-Use case:
-  Use this before renaming, dropping, or changing a table to find the visible
-  SQL files that need review.
-`)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--view <view>', 'Investigation view: impact or detail', 'impact')
     .option('--root-dir <path>', 'Project root to scan', process.cwd())
@@ -113,11 +108,6 @@ Use case:
   uses
     .command('column <target>')
     .description('Find statements that use a column target')
-    .addHelpText('after', `
-Use case:
-  Use this before renaming, dropping, changing nullability/type, or changing
-  semantics of a column to find the SQL files that need review.
-`)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--view <view>', 'Investigation view: impact or detail', 'impact')
     .option('--root-dir <path>', 'Project root to scan', process.cwd())
@@ -134,11 +124,6 @@ Use case:
   query
     .command('outline <sqlFile>')
     .description('Summarize query structure, CTE dependencies, and base table usage')
-    .addHelpText('after', `
-Use case:
-  Use this to understand a complex SQL file before editing it or regenerating
-  query metadata.
-`)
     .option('--format <format>', 'Output format: text or json', 'text')
     .action((sqlFile: string, options: QueryStructureOptions) => {
       process.stdout.write(runQueryStructure(sqlFile, { ...options, format: normalizeStructureFormat(options.format ?? 'text', false) }));
@@ -147,11 +132,6 @@ Use case:
   query
     .command('graph <sqlFile>')
     .description('Emit the query dependency graph in text, JSON, or DOT form')
-    .addHelpText('after', `
-Use case:
-  Use this when a WITH query has many CTEs and reviewers need the dependency
-  shape without reading the full SQL first.
-`)
     .option('--format <format>', 'Output format: text, json, or dot', 'text')
     .action((sqlFile: string, options: QueryStructureOptions) => {
       process.stdout.write(runQueryStructure(sqlFile, { ...options, format: normalizeStructureFormat(options.format ?? 'text', true) }));
@@ -160,11 +140,6 @@ Use case:
   query
     .command('slice <sqlFile>')
     .description('Extract a runnable CTE debug slice to find where a complex WITH query breaks')
-    .addHelpText('after', `
-Use case:
-  Use this when a large WITH query fails or returns surprising rows and you want
-  to run one CTE, or the final query with unused CTEs removed, in a SQL client.
-`)
     .option('--cte <name>', 'Slice a specific CTE into a standalone debug query')
     .option('--final', 'Slice the final query while removing unused CTEs')
     .option('--limit <count>', 'Add LIMIT to the emitted debug query when supported')
@@ -192,16 +167,6 @@ Use cases:
   optional
     .command('add <sqlFile>')
     .description('Add optional search condition branches near the closest source query')
-    .addHelpText('after', `
-Use case:
-  Use this at development time to add an SSSQL optional search condition to the SQL
-  file itself. Runtime code still consumes generated metadata; this command is
-  not a runtime SQL string API.
-
-SSSQL:
-  SSSQL means optional-search SQL written as plain SQL, for example
-  (:email is null or users.email = :email). See docs/guide/sssql.md.
-`)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--filter <name>', 'Target column for scalar scaffold, or primary anchor column for EXISTS/NOT EXISTS')
     .option('--parameter <name>', 'Explicit parameter name for structured optional-condition scaffold')
@@ -221,11 +186,6 @@ SSSQL:
   optional
     .command('refresh <sqlFile>')
     .description('Refresh existing optional search condition scaffolds without changing predicate meaning')
-    .addHelpText('after', `
-Use case:
-  Use this after editing SSSQL optional-condition SQL by hand so generated query
-  metadata matches the visible SQL again.
-`)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--preview', 'Emit a unified diff without writing files')
     .option('--out <path>', 'Write output to file')
@@ -236,15 +196,6 @@ Use case:
   optional
     .command('remove <sqlFile>')
     .description('Remove one supported optional search condition branch safely')
-    .addHelpText('after', `
-Use case:
-  Use this when an optional condition is no longer part of the query contract.
-  The SQL file is updated and metadata is refreshed together.
-
-SSSQL:
-  This command removes recognized SSSQL optional-search branches and refreshes
-  the metadata used by optional-condition compression.
-`)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--all', 'Remove all recognized optional condition branches in the query')
     .option('--parameter <name>', 'Parameter name that identifies the target branch')
@@ -260,11 +211,6 @@ SSSQL:
   query
     .command('lint <sqlFile>')
     .description('Report structural maintainability and analysis-safety issues in a SQL query')
-    .addHelpText('after', `
-Use case:
-  Use this before review to catch SQL shapes that are hard to analyze, debug, or
-  maintain.
-`)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--root-dir <path>', 'Project root for config and DDL-aware rules', process.cwd())
     .option('--rules <list>', 'Comma-separated lint rules to enable, for example: join-direction')

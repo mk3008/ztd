@@ -113,6 +113,30 @@ describe('@ashiba/cli smoke', () => {
     expect(rendered).toContain('use case: Debug a complex CTE');
   });
 
+  test('keeps command catalog use cases visible in command help', () => {
+    const program = buildProgram();
+
+    for (const command of COMMANDS) {
+      const registered = findRegisteredCommand(program, command.name);
+
+      expect(registered, `missing registered command for ${command.name}`).toBeDefined();
+      if (!registered) {
+        throw new Error(`missing registered command for ${command.name}`);
+      }
+      expect(registered?.description(), `description drift for ${command.name}`).toBe(command.summary.replace(/\.$/, ''));
+
+      const help = captureCommandHelp(registered);
+      expect(help, `help drift for ${command.name}`).toContain(command.useCase);
+      expect(help, `help missing catalog pointer for ${command.name}`).toContain('Catalog use case:');
+      for (const note of command.notes ?? []) {
+        expect(help, `help missing catalog note for ${command.name}`).toContain(note);
+      }
+      for (const example of command.examples ?? []) {
+        expect(help, `help missing catalog example for ${command.name}`).toContain(example);
+      }
+    }
+  });
+
   test('creates a small SQL-first starter', () => {
     const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-init-'));
 
@@ -3076,6 +3100,33 @@ function catchError(callback: () => unknown): unknown {
   } catch (error) {
     return error;
   }
+}
+
+function findRegisteredCommand(program: ReturnType<typeof buildProgram>, name: string) {
+  const parts = name.split(' ');
+  let current = program;
+  for (const part of parts) {
+    const next = current.commands.find((command) => command.name() === part);
+    if (!next) {
+      return undefined;
+    }
+    current = next;
+  }
+  return current;
+}
+
+function captureCommandHelp(command: NonNullable<ReturnType<typeof findRegisteredCommand>>): string {
+  let output = '';
+  command.configureOutput({
+    writeOut: (text) => {
+      output += text;
+    },
+    writeErr: (text) => {
+      output += text;
+    },
+  });
+  command.outputHelp();
+  return output;
 }
 
 function writePostgresStarterPackageJson(rootDir: string): void {

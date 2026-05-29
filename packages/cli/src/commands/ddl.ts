@@ -34,11 +34,6 @@ Use case:
   migration
     .command('generate')
     .description('Compare two DDL snapshots, generate reviewable migration SQL, and include risk info')
-    .addHelpText('after', `
-Use case:
-  Use this when a DDL file changed and you need migration SQL plus risk evidence
-  for review. Risk reporting is part of this command's output.
-`)
     .option('--from <path>', 'Current or old DDL snapshot file')
     .option('--to <path>', 'Desired or new DDL snapshot file')
     .option('--from-dir <path>', 'Current or old DDL snapshot directory; reads .sql files recursively in stable order')

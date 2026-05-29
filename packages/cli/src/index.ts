@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerCheckCommand } from './commands/check.js';
 import { registerCheckContractCommand } from './commands/check-contract.js';
+import { applyCommandCatalogToProgram, formatCommonUseCases } from './commands/command-catalog.js';
 import { registerConfigCommand } from './commands/config.js';
 import { registerDescribeCommand } from './commands/describe.js';
 import { registerDdlCommand } from './commands/ddl.js';
@@ -29,6 +30,16 @@ export const VERSION = '0.0.0';
  * Build the Ashiba Commander program with all registered command surfaces.
  */
 export function buildProgram(): Command {
+  const commonUseCases = formatCommonUseCases([
+    'check',
+    'gate scaffold',
+    'init',
+    'feature scaffold',
+    'query uses table',
+    'query slice',
+    'ddl migration generate',
+    'describe command',
+  ]);
   const program = new Command();
   program
     .name('ashiba')
@@ -45,15 +56,10 @@ Status:
   model generation, RFBA inspection, and performance evidence.
 
 Common use cases:
-  ashiba check                Run the fast human-first diagnostic gate.
-  ashiba check --full         Run the full gate for pre-push, review, or CI.
-  ashiba gate scaffold        Create the standard passive gate surface.
-  ashiba init                 Create a SQL-first starter after choosing a DBMS/driver.
-  ashiba feature scaffold     Add a reviewable feature boundary from DDL metadata.
-  ashiba query slice          Debug one CTE step inside a complex WITH query.
-  ashiba ddl migration generate
-                              Compare two DDL snapshots and review migration risk.
-  ashiba describe command     Show the command catalog with AI-readable use cases.
+${commonUseCases}
+
+Detailed command catalog:
+  ashiba describe command [name...] --format text|json
 `);
 
   registerCheckCommand(program);
@@ -70,6 +76,7 @@ Common use cases:
   registerProjectCommand(program);
   registerQueryCommand(program);
   registerRfbaCommand(program);
+  applyCommandCatalogToProgram(program);
 
   return program;
 }
