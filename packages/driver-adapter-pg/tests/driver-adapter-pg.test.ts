@@ -195,7 +195,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     expect(events[0]?.maskedParams).toBeUndefined();
   });
 
-  test('compresses optional SSSQL conditions only when explicitly enabled', async () => {
+  test('compresses optional conditions only when explicitly enabled', async () => {
     const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
     const sourceSql = 'select * from users where tenant_id = :tenant_id and (:status is null or status = :status)';
     const compiledSql = 'select * from users where tenant_id = $1 and ($2 is null or status = $3)';
@@ -210,12 +210,12 @@ describe('@ashiba/driver-adapter-pg', () => {
     await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status'],
-          sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
+          optionalConditionCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
         }, {
-          sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
+          optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
         })),
       { tenant_id: 10, status: null },{
-        sssqlCompression: true},
+        optionalConditionCompression: true},
     );
 
     expect(calls).toEqual([{
@@ -224,7 +224,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     }]);
   });
 
-  test('keeps optional SSSQL conditions when compression is not enabled', async () => {
+  test('keeps optional conditions when compression is not enabled', async () => {
     const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
     const sourceSql = 'select * from users where tenant_id = :tenant_id and (:status is null or status = :status)';
     const compiledSql = 'select * from users where tenant_id = $1 and ($2 is null or status = $3)';
@@ -239,9 +239,9 @@ describe('@ashiba/driver-adapter-pg', () => {
     await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status'],
-          sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
+          optionalConditionCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
         }, {
-          sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
+          optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
         })),
       { tenant_id: 10, status: null },{},
     );
@@ -252,7 +252,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     }]);
   });
 
-  test('rejects SSSQL compression when metadata is missing', async () => {
+  test('rejects optional condition compression when metadata is missing', async () => {
     let called = false;
     const sourceSql = 'select * from users where id = :id';
     const client: NodePostgresQueryable = {
@@ -267,14 +267,14 @@ describe('@ashiba/driver-adapter-pg', () => {
         sql: 'select * from users where id = $1',
         orderedNames: ['id'],
       })), { id: 1 },{
-      sssqlCompression: true})).rejects.toMatchObject({
-      code: 'ASHIBA_SSSQL_COMPRESSION_METADATA_REQUIRED',
-      nextAction: 'Regenerate the query model with optional condition compression metadata, or disable sssqlCompression for this execution.',
+      optionalConditionCompression: true})).rejects.toMatchObject({
+      code: 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_REQUIRED',
+      nextAction: 'Regenerate the query model with optional condition compression metadata, or disable optionalConditionCompression for this execution.',
     });
     expect(called).toBe(false);
   });
 
-  test('rejects SSSQL compression when query model AST analysis failed', async () => {
+  test('rejects optional condition compression when query model AST analysis failed', async () => {
     let called = false;
     const sourceSql = 'select * from users where id = :id';
     const client: NodePostgresQueryable = {
@@ -288,19 +288,19 @@ describe('@ashiba/driver-adapter-pg', () => {
     await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
         sql: 'select * from users where id = $1',
         orderedNames: ['id'],
-        sssqlCompression: { branches: [] },
+        optionalConditionCompression: { branches: [] },
       }, {
         astParse: 'failed',
-        sssqlCompression: { enabled: true, branches: [] },
+        optionalConditionCompression: { enabled: true, branches: [] },
       })), { id: 1 },{
-      sssqlCompression: true})).rejects.toMatchObject({
-      code: 'ASHIBA_SSSQL_COMPRESSION_UNSUPPORTED_QUERY_MODEL',
-      nextAction: 'Fix the SQL shape or parser support, then regenerate the query model before enabling sssqlCompression.',
+      optionalConditionCompression: true})).rejects.toMatchObject({
+      code: 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_UNSUPPORTED_QUERY_MODEL',
+      nextAction: 'Fix the SQL shape or parser support, then regenerate the query model before enabling optionalConditionCompression.',
     });
     expect(called).toBe(false);
   });
 
-  test('combines SSSQL compression, named parameters, and safe sort metadata', async () => {
+  test('combines optional condition compression, named parameters, and safe sort metadata', async () => {
     const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
     const sourceSql = 'select a.user_id as id from users a where a.tenant_id = :tenant_id and (:status is null or a.status = :status) limit :limit';
     const compiledSql = 'select a.user_id as id from users a where a.tenant_id = $1 and ($2 is null or a.status = $3) limit $4';
@@ -316,17 +316,17 @@ describe('@ashiba/driver-adapter-pg', () => {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status', 'limit'],
           safeSortInsertion: { index: compiledSql.indexOf('limit $4') },
-          sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or a.status = $3)'),
+          optionalConditionCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or a.status = $3)'),
         }, {
           rootQueryShape: 'simple-select',
           safeSort: {
             insertion: { status: 'ready', index: sourceSql.indexOf('limit :limit'), mode: 'order-by' },
             sortable: { id: { sql: 'a.user_id' } },
           },
-          sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
+          optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
         })),
       { tenant_id: 7, status: null, limit: 10 },{
-        sssqlCompression: true,
+        optionalConditionCompression: true,
         sort: [{ key: 'id', direction: 'desc' }]},
     );
 
@@ -336,7 +336,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     }]);
   });
 
-  test('renumbers placeholders above $10 after SSSQL compression and safe sort', async () => {
+  test('renumbers placeholders above $10 after optional condition compression and safe sort', async () => {
     const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
     const beforeNames = Array.from({ length: 9 }, (_, index) => `p${String(index + 1).padStart(2, '0')}`);
     const afterNames = Array.from({ length: 3 }, (_, index) => `p${String(index + 10).padStart(2, '0')}`);
@@ -359,21 +359,21 @@ describe('@ashiba/driver-adapter-pg', () => {
           sql: compiledSql,
           orderedNames: [...beforeNames, 'status', 'status', ...afterNames],
           safeSortInsertion: { index: compiledSql.length },
-          sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($10 is null or a.status = $11)'),
+          optionalConditionCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($10 is null or a.status = $11)'),
         }, {
           rootQueryShape: 'simple-select',
           safeSort: {
             insertion: { status: 'ready', index: sourceSql.length, mode: 'comma' },
             sortable: { id: { sql: 'a.user_id' } },
           },
-          sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
+          optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
         })),
       Object.fromEntries([
         ...beforeNames.map((name, index) => [name, index + 1] as const),
         ['status', null] as const,
         ...afterNames.map((name, index) => [name, index + 10] as const),
       ]),{
-        sssqlCompression: true,
+        optionalConditionCompression: true,
         sort: [{ key: 'id' }]},
     );
 
@@ -383,7 +383,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     }]);
   });
 
-  test('keeps SQL-like parameter values bound when SSSQL compression and safe sort compose', async () => {
+  test('keeps SQL-like parameter values bound when optional condition compression and safe sort compose', async () => {
     const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
     const sourceSql = 'select a.user_id as id from users a where a.tenant_id = :tenant_id and (:status is null or a.status = :status) and (:email is null or a.email = :email)';
     const compiledSql = 'select a.user_id as id from users a where a.tenant_id = $1 and ($2 is null or a.status = $3) and ($4 is null or a.email = $5)';
@@ -400,7 +400,7 @@ describe('@ashiba/driver-adapter-pg', () => {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status', 'email', 'email'],
           safeSortInsertion: { index: compiledSql.length },
-          sssqlCompression: {
+          optionalConditionCompression: {
             branches: [
               ...optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or a.status = $3)').branches,
               ...optionalCompressionBinding(compiledSql, 'email', 'and ($4 is null or a.email = $5)').branches,
@@ -412,7 +412,7 @@ describe('@ashiba/driver-adapter-pg', () => {
             insertion: { status: 'ready', index: sourceSql.length, mode: 'order-by' },
             sortable: { id: { sql: 'a.user_id' } },
           },
-          sssqlCompression: {
+          optionalConditionCompression: {
             enabled: true,
             branches: [
               ...optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)').branches,
@@ -421,7 +421,7 @@ describe('@ashiba/driver-adapter-pg', () => {
           },
         })),
       { tenant_id: 7, status: null, email: injectedEmail },{
-        sssqlCompression: true,
+        optionalConditionCompression: true,
         sort: [{ key: 'id', direction: 'desc' }]},
     );
 
@@ -432,7 +432,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     expect(calls[0]?.sql).not.toContain(injectedEmail);
   });
 
-  test('does not renumber placeholder-like text inside strings or comments during SSSQL compression', async () => {
+  test('does not renumber placeholder-like text inside strings or comments during optional condition compression', async () => {
     const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
     const beforeNames = Array.from({ length: 9 }, (_, index) => `p${String(index + 1).padStart(2, '0')}`);
     const beforeSource = beforeNames.map((name) => `a.${name} = :${name}`).join(' and ');
@@ -450,16 +450,16 @@ describe('@ashiba/driver-adapter-pg', () => {
     await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: [...beforeNames, 'status', 'status', 'email'],
-          sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($10 is null or a.status = $11)'),
+          optionalConditionCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($10 is null or a.status = $11)'),
         }, {
-          sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
+          optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
         })),
       Object.fromEntries([
         ...beforeNames.map((name, index) => [name, index + 1] as const),
         ['status', null] as const,
         ['email', 'safe@example.test'] as const,
       ]),{
-        sssqlCompression: true},
+        optionalConditionCompression: true},
     );
 
     expect(calls).toEqual([{
@@ -468,7 +468,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     }]);
   });
 
-  test('ignores placeholder-like text across Postgres lexical contexts during SSSQL compression', async () => {
+  test('ignores placeholder-like text across Postgres lexical contexts during optional condition compression', async () => {
     const lexicalCases = [
       {
         label: 'escape string',
@@ -512,12 +512,12 @@ describe('@ashiba/driver-adapter-pg', () => {
       await adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
             sql: compiledSql,
             orderedNames: ['p01', 'status', 'status', 'email'],
-            sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or a.status = $3)'),
+            optionalConditionCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or a.status = $3)'),
           }, {
-            sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
+            optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)'),
           })),
         { p01: 1, status: null, email: `${lexicalCase.label}' or 1=1;--` },{
-          sssqlCompression: true},
+          optionalConditionCompression: true},
       );
 
       expect(calls, lexicalCase.label).toEqual([{
@@ -527,7 +527,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     }
   });
 
-  test('property: SSSQL compression and safe sort keep SQL shape and bound values stable', async () => {
+  test('property: optional condition compression and safe sort keep SQL shape and bound values stable', async () => {
     await fc.assert(fc.asyncProperty(
       fc.record({
         beforeCount: fc.integer({ min: 1, max: 14 }),
@@ -573,7 +573,7 @@ describe('@ashiba/driver-adapter-pg', () => {
               sql: compiledSql,
               orderedNames: [...beforeNames, 'status', 'status', ...afterNames],
               safeSortInsertion: { index: compiledSql.length },
-              sssqlCompression: optionalCompressionBinding(compiledSql, 'status', compiledBranch),
+              optionalConditionCompression: optionalCompressionBinding(compiledSql, 'status', compiledBranch),
             }, {
               rootQueryShape: 'simple-select',
               safeSort: {
@@ -584,10 +584,10 @@ describe('@ashiba/driver-adapter-pg', () => {
                 },
                 sortable: { id: { sql: 'a.user_id' } },
               },
-              sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', sourceBranch),
+              optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', sourceBranch),
             })),
           Object.fromEntries(paramEntries),{
-            sssqlCompression: true,
+            optionalConditionCompression: true,
             sort: [{ key: 'id', direction }]},
         );
 
@@ -608,7 +608,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     ), { numRuns: 100 });
   });
 
-  test('combines SSSQL compression with mixed optional parameters and comma-mode safe sort', async () => {
+  test('combines optional condition compression with mixed optional parameters and comma-mode safe sort', async () => {
     const calls: Array<{ sql: string; values: readonly unknown[] }> = [];
     const sourceSql = 'select a.user_id as id from users a where a.tenant_id = :tenant_id and (:status is null or a.status = :status) and (:email is null or a.email = :email) order by a.created_at';
     const compiledSql = 'select a.user_id as id from users a where a.tenant_id = $1 and ($2 is null or a.status = $3) and ($4 is null or a.email = $5) order by a.created_at';
@@ -624,7 +624,7 @@ describe('@ashiba/driver-adapter-pg', () => {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status', 'email', 'email'],
           safeSortInsertion: { index: compiledSql.length },
-          sssqlCompression: {
+          optionalConditionCompression: {
             branches: [
               ...optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or a.status = $3)').branches,
               ...optionalCompressionBinding(compiledSql, 'email', 'and ($4 is null or a.email = $5)').branches,
@@ -636,7 +636,7 @@ describe('@ashiba/driver-adapter-pg', () => {
             insertion: { status: 'ready', index: sourceSql.length, mode: 'comma' },
             sortable: { id: { sql: 'a.user_id' } },
           },
-          sssqlCompression: {
+          optionalConditionCompression: {
             enabled: true,
             branches: [
               ...optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or a.status = :status)').branches,
@@ -645,7 +645,7 @@ describe('@ashiba/driver-adapter-pg', () => {
           },
         })),
       { tenant_id: 7, status: null, email: 'a@example.test' },{
-        sssqlCompression: true,
+        optionalConditionCompression: true,
         sort: [{ key: 'id' }]},
     );
 
@@ -670,12 +670,12 @@ describe('@ashiba/driver-adapter-pg', () => {
     await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status'],
-          sssqlCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
+          optionalConditionCompression: optionalCompressionBinding(compiledSql, 'status', 'and ($2 is null or status = $3)'),
         }, {
-          sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
+          optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
         })),
       { tenant_id: 10 },{
-        sssqlCompression: true},
+        optionalConditionCompression: true},
     )).rejects.toMatchObject({
       code: 'ASHIBA_MISSING_PARAMETER',
       parameterNames: ['status'],
@@ -683,7 +683,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     expect(called).toBe(false);
   });
 
-  test('rejects stale SSSQL compression range text before broken SQL can be emitted', async () => {
+  test('rejects stale optional condition compression range text before broken SQL can be emitted', async () => {
     let called = false;
     const sourceSql = 'select * from users where tenant_id = :tenant_id and (:status is null or status = :status)';
     const compiledSql = 'select * from users where tenant_id = $1 and ($2 is null or status = $3)';
@@ -699,7 +699,7 @@ describe('@ashiba/driver-adapter-pg', () => {
     await expect(adapter.execute(querySource(sourceSql, queryModelFor(sourceSql, {
           sql: compiledSql,
           orderedNames: ['tenant_id', 'status', 'status'],
-          sssqlCompression: {
+          optionalConditionCompression: {
             branches: [{
               ...staleBinding.branches[0],
               removalRange: {
@@ -709,12 +709,12 @@ describe('@ashiba/driver-adapter-pg', () => {
             }],
           },
         }, {
-          sssqlCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
+          optionalConditionCompression: optionalCompressionAnalysis(sourceSql, 'status', 'and (:status is null or status = :status)'),
         })),
       { tenant_id: 10, status: null },{
-        sssqlCompression: true},
+        optionalConditionCompression: true},
     )).rejects.toMatchObject({
-      code: 'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
+      code: 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE',
     });
     expect(called).toBe(false);
   });
@@ -1240,7 +1240,7 @@ function queryModelFor(
     sql?: string;
     orderedNames?: readonly string[];
     safeSortInsertion?: { index: number };
-    sssqlCompression?: {
+    optionalConditionCompression?: {
       branches: readonly {
         parameterName: string;
           removalRange: {
@@ -1267,7 +1267,7 @@ function queryModelFor(
         sql: binding.sql ?? sourceSql,
         orderedNames: binding.orderedNames ?? [],
         ...(binding.safeSortInsertion ? { safeSortInsertion: binding.safeSortInsertion } : {}),
-        ...(binding.sssqlCompression ? { sssqlCompression: binding.sssqlCompression } : {}),
+        ...(binding.optionalConditionCompression ? { optionalConditionCompression: binding.optionalConditionCompression } : {}),
       },
     },
   };

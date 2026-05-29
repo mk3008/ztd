@@ -3,7 +3,7 @@
 
 > **createMssqlAdapter**(`factory`, `options?`): [`AshibaMssqlAdapter`](../type-aliases/AshibaMssqlAdapter.md)
 
-Defined in: [packages/driver-adapter-mssql/src/index.ts:125](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mssql/src/index.ts#L125)
+Defined in: [packages/driver-adapter-mssql/src/index.ts:125](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mssql/src/index.ts#L125)
 
 Create a thin adapter around an mssql request factory.
 

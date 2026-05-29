@@ -1,7 +1,7 @@
 <div v-pre>
 # Class: AshibaParameterError
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:100](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L100)
+Defined in: [packages/driver-adapter-pg/src/index.ts:100](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L100)
 
 Error raised when provided named parameters do not match query model metadata.
 
@@ -15,7 +15,7 @@ Error raised when provided named parameters do not match query model metadata.
 
 > **new AshibaParameterError**(`code`, `parameterNames`): `AshibaParameterError`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:107](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L107)
+Defined in: [packages/driver-adapter-pg/src/index.ts:107](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L107)
 
 #### Parameters
 
@@ -41,7 +41,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:107](https://github.com/mk3
 
 > `readonly` **code**: `"ASHIBA_MISSING_PARAMETER"` \| `"ASHIBA_UNUSED_PARAMETER"`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:101](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L101)
+Defined in: [packages/driver-adapter-pg/src/index.ts:101](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L101)
 
 ***
 
@@ -49,7 +49,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:101](https://github.com/mk3
 
 > `readonly` **parameterNames**: `string`[]
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:102](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L102)
+Defined in: [packages/driver-adapter-pg/src/index.ts:102](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L102)
 
 ***
 
@@ -57,7 +57,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:102](https://github.com/mk3
 
 > `readonly` **causeText**: `string`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:103](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L103)
+Defined in: [packages/driver-adapter-pg/src/index.ts:103](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L103)
 
 ***
 
@@ -65,7 +65,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:103](https://github.com/mk3
 
 > `readonly` **nextAction**: `string`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:104](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L104)
+Defined in: [packages/driver-adapter-pg/src/index.ts:104](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L104)
 
 ***
 
@@ -73,7 +73,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:104](https://github.com/mk3
 
 > `readonly` **details**: `object`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:105](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L105)
+Defined in: [packages/driver-adapter-pg/src/index.ts:105](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L105)
 
 #### parameterNames
 

@@ -84,7 +84,7 @@ These concepts belong to driver-neutral SQL libraries, production driver adapter
 | `named-parameter-binding` | Named Parameter Binding | mostly done | Source SQL uses named parameters such as `:name` or `@name`; DB driver wrappers compile them to driver placeholders. |
 | `parameter-contract-check` | Parameter Contract Check | mostly done | Missing and unused parameters fail before execution in binder and PostgreSQL adapter paths. |
 | `safe-sort-profile` | Safe Sort Profile | mostly done | DB driver wrapper-owned safe sort surface based on whitelisted profiles and CLI-generated query model metadata: source hash, root query shape, insertion position, order-by/comma mode, and sortable dictionary. Sort keys must exactly match the query model whitelist. |
-| `optional-condition-compression` | Optional Condition Compression | partial | Explicit driver-owned SSSQL optional branch removal based on CLI-generated query model metadata. Runtime does not parse SQL, does not use Ashiba-only SQL markers, and rejects missing or stale metadata. |
+| `optional-condition-compression` | Optional Condition Compression | partial | Explicit driver-owned optional search condition removal based on CLI-generated query model metadata. Runtime does not parse SQL, does not use Ashiba-only SQL markers, and rejects missing or stale metadata. |
 | `logger-ready-execution-event` | Logger-Ready Execution Event | mostly done | Structured driver observer events cover start/end/error, masked params by default, optional unmasked params, query metadata, DB errors, and pre-execution validation failures. Scaffolded/generated SQL execution paths are also checked; low-level pool helpers are not enough when presented as the SQL client. |
 
 ## Transform Package Concepts
@@ -94,7 +94,7 @@ These concepts are extension capabilities outside the core `@ashiba/cli` Runtime
 | ID | Display name | Status | Target package |
 |---|---|---|---|
 | `pipeline-expansion` | Pipeline Expansion | mostly done | Dev-time CTE structure, graph, slice, and plan support is folded into `@ashiba/cli` query commands because it supports Runtime Zero review and has no separate runtime consumer. |
-| `scalar-expansion` | Scalar Expansion | deferred | Extension capability planned from `rawsql-ts` / `ztd-cli` SSSQL optional-condition tooling; deferred for the current pass. |
+| `scalar-expansion` | Scalar Expansion | deferred | Extension capability planned from `rawsql-ts` / `ztd-cli` optional-condition tooling; deferred for the current pass. |
 
 Future `@ashiba/extension-*` packages are reserved until a plugin mechanism exists.
 

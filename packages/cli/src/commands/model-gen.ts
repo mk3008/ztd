@@ -49,7 +49,7 @@ export interface QueryModelAnalysis {
   hasTopLevelOrderBy: boolean;
   sourceHash: string;
   safeSort: SqlSafeSortMetadata;
-  sssqlCompression?: SqlOptionalConditionCompressionMetadata;
+  optionalConditionCompression?: SqlOptionalConditionCompressionMetadata;
   resultColumns: string[];
   resultColumnTypes: Record<string, SqlResultColumnContract['type']>;
   namedParameters: string[];
@@ -64,7 +64,7 @@ export interface QueryModelBindings {
     safeSortInsertion?: {
       index: number;
     };
-    sssqlCompression?: {
+    optionalConditionCompression?: {
       branches: Array<{
         parameterName: string;
         removalRange: {
@@ -136,7 +136,7 @@ export function runModelGen(options: ModelGenOptions): ModelGenResult {
   const resultColumnContracts = buildQueryResultColumnContracts(sql, rootDir, options.ddlDir);
   const resultColumns = resultColumnContracts.map((column) => column.name);
   const analysis = analyzeQueryModel(sql, parameters, resultColumnContracts, {
-    sssqlCompression: true,
+    optionalConditionCompression: true,
     parameterTypes: ddlModel ? inferSqlParameterTypes(sql, ddlModel).parameterTypes : undefined,
   });
   const bindings = {
@@ -145,7 +145,7 @@ export function runModelGen(options: ModelGenOptions): ModelGenResult {
       sql: postgresBinding.sql,
       orderedNames: postgresBinding.orderedNames,
       ...buildPostgresSafeSortBindingMetadata(sql, analysis.safeSort),
-      ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.sssqlCompression),
+      ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.optionalConditionCompression),
     },
     mysql2: {
       sourceHash: analysis.sourceHash,
@@ -291,13 +291,13 @@ export function buildPostgresSafeSortBindingMetadata(
 export function buildPostgresOptionalConditionCompressionBindingMetadata(
   sourceSql: string,
   metadata: SqlOptionalConditionCompressionMetadata | undefined,
-): { sssqlCompression?: NonNullable<QueryModelBindings['postgres']['sssqlCompression']> } {
+): { optionalConditionCompression?: NonNullable<QueryModelBindings['postgres']['optionalConditionCompression']> } {
   if (!metadata) {
     return {};
   }
 
   return {
-    sssqlCompression: {
+    optionalConditionCompression: {
       branches: metadata.branches.map((branch) => ({
         parameterName: branch.parameterName,
         removalRange: {
@@ -331,7 +331,7 @@ export function analyzeQueryModel(
   sql: string,
   namedParameters: string[],
   resultColumnContracts: SqlResultColumnContract[],
-  options: { sssqlCompression?: boolean; parameterTypes?: Record<string, string> } = {},
+  options: { optionalConditionCompression?: boolean; parameterTypes?: Record<string, string> } = {},
 ): QueryModelAnalysis {
   const sourceHash = hashSql(sql);
   const resultColumns = resultColumnContracts.map((column) => column.name);
@@ -355,8 +355,8 @@ export function analyzeQueryModel(
       hasTopLevelOrderBy: hasTopLevelOrderBy(parsed),
       sourceHash,
       safeSort,
-      ...(options.sssqlCompression && statementKind === 'select'
-        ? { sssqlCompression: buildSqlOptionalConditionCompressionMetadata(sql) }
+      ...(options.optionalConditionCompression && statementKind === 'select'
+        ? { optionalConditionCompression: buildSqlOptionalConditionCompressionMetadata(sql) }
         : {}),
       resultColumns,
       resultColumnTypes,

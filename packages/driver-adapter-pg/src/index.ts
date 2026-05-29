@@ -49,7 +49,7 @@ export type AshibaPostgresQueryModel = {
       safeSortInsertion?: {
         index: number;
       };
-      sssqlCompression?: {
+      optionalConditionCompression?: {
         branches: readonly {
           parameterName: string;
           removalRange: {
@@ -78,7 +78,7 @@ export type AshibaPostgresQuerySource = {
  */
 export type AshibaPostgresExecuteOptions = {
   metadata?: AshibaSqlExecutionMetadata;
-  sssqlCompression?: boolean;
+  optionalConditionCompression?: boolean;
   sortProfile?: AshibaSortProfile;
   sort?: readonly AshibaSortInput[];
 };
@@ -127,9 +127,9 @@ export class AshibaPostgresQueryModelError extends Error {
   readonly code:
     | 'ASHIBA_QUERY_MODEL_STALE'
     | 'ASHIBA_BINDING_METADATA_REQUIRED'
-    | 'ASHIBA_SSSQL_COMPRESSION_METADATA_REQUIRED'
-    | 'ASHIBA_SSSQL_COMPRESSION_UNSUPPORTED_QUERY_MODEL'
-    | 'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE';
+    | 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_REQUIRED'
+    | 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_UNSUPPORTED_QUERY_MODEL'
+    | 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE';
   readonly causeText: string;
   readonly nextAction: string;
 
@@ -271,7 +271,7 @@ function preparePostgresExecution(
 } {
   const sourceSql = query.sql;
   const precomputed = validatePostgresBindingMetadata(query);
-  const compression = options.sssqlCompression === true
+  const compression = options.optionalConditionCompression === true
     ? applyOptionalConditionCompression(query, precomputed, params)
     : undefined;
   const compiled = compression
@@ -347,24 +347,24 @@ function applyOptionalConditionCompression(
   sourceRemovalRanges: readonly TextRange[];
   compiledRemovalRanges: readonly TextRange[];
 } {
-  const analysis = query.queryModel?.analysis.sssqlCompression;
-  const binding = precomputed.sssqlCompression;
+  const analysis = query.queryModel?.analysis.optionalConditionCompression;
+  const binding = precomputed.optionalConditionCompression;
   if (!analysis || !binding) {
     throw new AshibaPostgresQueryModelError(
-      'ASHIBA_SSSQL_COMPRESSION_METADATA_REQUIRED',
-      'SSSQL optional condition compression requires CLI-generated query model metadata.',
+      'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_REQUIRED',
+      'Optional condition compression requires CLI-generated query model metadata.',
     );
   }
   if (query.queryModel?.analysis.astParse !== 'ok') {
     throw new AshibaPostgresQueryModelError(
-      'ASHIBA_SSSQL_COMPRESSION_UNSUPPORTED_QUERY_MODEL',
-      'SSSQL optional condition compression requires successfully parsed query model metadata.',
+      'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_UNSUPPORTED_QUERY_MODEL',
+      'Optional condition compression requires successfully parsed query model metadata.',
     );
   }
   if (analysis.branches.length !== binding.branches.length) {
     throw new AshibaPostgresQueryModelError(
-      'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
-      'SSSQL optional condition compression metadata does not match Postgres binding metadata.',
+      'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE',
+      'Optional condition compression metadata does not match Postgres binding metadata.',
     );
   }
 
@@ -376,8 +376,8 @@ function applyOptionalConditionCompression(
     } => {
       if (!branch.compiled || branch.source.parameterName !== branch.compiled.parameterName) {
         throw new AshibaPostgresQueryModelError(
-          'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
-          'SSSQL optional condition compression metadata has mismatched branch order.',
+          'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE',
+          'Optional condition compression metadata has mismatched branch order.',
         );
       }
       return Object.prototype.hasOwnProperty.call(params, branch.source.parameterName)
@@ -425,8 +425,8 @@ function assertNonOverlappingRanges(ranges: readonly TextRange[], label: string)
     const current = sorted[index];
     if (current.start < previous.end) {
       throw new AshibaPostgresQueryModelError(
-        'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
-        `SSSQL optional condition compression metadata has overlapping ${label} ranges.`,
+        'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE',
+        `Optional condition compression metadata has overlapping ${label} ranges.`,
       );
     }
   }
@@ -438,8 +438,8 @@ function assertRangeTextMatches(sql: string, range: TextRange & { text?: string 
   }
   if (range.start < 0 || range.end < range.start || range.end > sql.length || sql.slice(range.start, range.end) !== range.text) {
     throw new AshibaPostgresQueryModelError(
-      'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
-      `SSSQL optional condition compression metadata has stale ${label} text.`,
+      'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE',
+      `Optional condition compression metadata has stale ${label} text.`,
     );
   }
 }
@@ -449,8 +449,8 @@ function removeTextRanges(sql: string, ranges: readonly TextRange[]): string {
   for (const range of normalizeRanges(ranges).sort((left, right) => right.start - left.start)) {
     if (range.start < 0 || range.end < range.start || range.end > sql.length) {
       throw new AshibaPostgresQueryModelError(
-        'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
-        'SSSQL optional condition compression metadata contains an invalid removal range.',
+        'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE',
+        'Optional condition compression metadata contains an invalid removal range.',
       );
     }
     output = `${output.slice(0, range.start)}${output.slice(range.end)}`;
@@ -472,8 +472,8 @@ function adjustInsertionForRemovedRanges<T extends { index: number; mode: 'order
   for (const range of normalizeRanges(ranges)) {
     if (insertion.index > range.start && insertion.index < range.end) {
       throw new AshibaPostgresQueryModelError(
-        'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
-        'SSSQL optional condition compression removed the safe-sort insertion point.',
+        'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE',
+        'Optional condition compression removed the safe-sort insertion point.',
       );
     }
     if (insertion.index >= range.end) {
@@ -558,8 +558,8 @@ function renumberPostgresPlaceholders(
       const name = originalOrderedNames[originalIndex - 1];
       if (!name) {
         throw new AshibaPostgresQueryModelError(
-          'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE',
-          `SSSQL optional condition compression found unknown compiled placeholder $${originalIndex}.`,
+          'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE',
+          `Optional condition compression found unknown compiled placeholder $${originalIndex}.`,
         );
       }
       output += sql.slice(cursor, index);
@@ -690,12 +690,12 @@ function describeQueryModelErrorCause(code: AshibaPostgresQueryModelError['code'
       return 'The PostgreSQL adapter is running in metadata-based binding mode, but the query model did not include Postgres binding metadata.';
     case 'ASHIBA_QUERY_MODEL_STALE':
       return 'The query model metadata was generated from different SQL than the SQL passed to the adapter.';
-    case 'ASHIBA_SSSQL_COMPRESSION_METADATA_REQUIRED':
-      return 'SSSQL optional condition compression was requested, but the query model does not include compression metadata generated by the CLI.';
-    case 'ASHIBA_SSSQL_COMPRESSION_UNSUPPORTED_QUERY_MODEL':
-      return 'SSSQL optional condition compression was requested, but the query model does not contain successful development-time SQL analysis.';
-    case 'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE':
-      return 'SSSQL optional condition compression metadata does not match the SQL or dialect binding metadata being executed.';
+    case 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_REQUIRED':
+      return 'Optional condition compression was requested, but the query model does not include compression metadata generated by the CLI.';
+    case 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_UNSUPPORTED_QUERY_MODEL':
+      return 'Optional condition compression was requested, but the query model does not contain successful development-time SQL analysis.';
+    case 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE':
+      return 'Optional condition compression metadata does not match the SQL or dialect binding metadata being executed.';
   }
 }
 
@@ -705,11 +705,11 @@ function describeQueryModelErrorNextAction(code: AshibaPostgresQueryModelError['
       return 'Run Ashiba model generation for the visible SQL and pass queryModel.bindings.postgres to the adapter.';
     case 'ASHIBA_QUERY_MODEL_STALE':
       return 'Regenerate the query model from the current visible SQL and ensure the source SQL passed to the adapter is unchanged.';
-    case 'ASHIBA_SSSQL_COMPRESSION_METADATA_REQUIRED':
-      return 'Regenerate the query model with optional condition compression metadata, or disable sssqlCompression for this execution.';
-    case 'ASHIBA_SSSQL_COMPRESSION_UNSUPPORTED_QUERY_MODEL':
-      return 'Fix the SQL shape or parser support, then regenerate the query model before enabling sssqlCompression.';
-    case 'ASHIBA_SSSQL_COMPRESSION_METADATA_STALE':
+    case 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_REQUIRED':
+      return 'Regenerate the query model with optional condition compression metadata, or disable optionalConditionCompression for this execution.';
+    case 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_UNSUPPORTED_QUERY_MODEL':
+      return 'Fix the SQL shape or parser support, then regenerate the query model before enabling optionalConditionCompression.';
+    case 'ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE':
       return 'Regenerate the query model from the current visible SQL and keep source SQL, binding metadata, and compression metadata together.';
   }
 }

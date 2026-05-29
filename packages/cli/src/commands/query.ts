@@ -5,17 +5,20 @@ import {
   buildQueryLintReport,
   buildQuerySliceReport,
   buildQueryStructureReport,
-  addSssql,
-  normalizeSssqlBranchKind,
-  refreshSssql,
-  removeSssql,
+  addOptionalCondition,
+  normalizeOptionalConditionBranchKind,
+  refreshOptionalConditions,
+  removeOptionalCondition,
   buildQueryUsageReport,
   formatQueryLintReport,
   formatQueryStructureReport,
   formatQueryUsageReport,
 } from '../sqlgrep/index.js';
 import { invalidCliInputError, requiredCliValueError } from '../errors.js';
-import type { SssqlRemoveSpec, SssqlScaffoldSpec } from 'rawsql-ts';
+import type {
+  SssqlRemoveSpec as OptionalConditionRemoveSpec,
+  SssqlScaffoldSpec as OptionalConditionScaffoldSpec,
+} from 'rawsql-ts';
 import { compileNamedParameters } from '../parameter-metadata.js';
 import {
   analyzeQueryModel,
@@ -52,7 +55,7 @@ export interface QueryLintOptions {
   rules?: string;
 }
 
-export interface QuerySssqlOptions {
+export interface QueryOptionalOptions {
   format?: 'text' | 'json';
   out?: string;
   preview?: boolean;
@@ -70,7 +73,7 @@ export interface QuerySssqlOptions {
 }
 
 /**
- * Registers SQL inspection, SSSQL, and usage-analysis commands.
+ * Registers SQL inspection, optional-condition, and usage-analysis commands.
  */
 export function registerQueryCommand(program: Command): void {
   const query = program
@@ -81,7 +84,7 @@ Use cases:
   uses table/column  Estimate impact before changing schema objects.
   outline/graph      Understand CTE-heavy SQL before editing it.
   slice              Run a smaller CTE debug query in a SQL client.
-  sssql add          Add an explicit optional filter and refresh metadata.
+  optional add       Add an explicit optional search condition and refresh metadata.
   lint               Catch hard-to-review query shapes before review.
 `);
 
@@ -169,28 +172,28 @@ Use case:
       process.stdout.write(runQuerySlice(sqlFile, options));
     });
 
-  const sssql = query
-    .command('sssql')
-    .description('Generate and refresh SQL-first optional filter scaffolds')
+  const optional = query
+    .command('optional')
+    .description('Generate and refresh SQL-first optional search condition scaffolds')
     .addHelpText('after', `
 Use cases:
-  add      Add an explicit optional predicate to a SQL file and refresh metadata.
+  add      Add an explicit optional search condition to a SQL file and refresh metadata.
   refresh  Rebuild metadata after SQL-only edits.
-  remove   Remove a supported optional predicate and refresh metadata.
+  remove   Remove a supported optional search condition and refresh metadata.
 `);
 
-  sssql
+  optional
     .command('add <sqlFile>')
-    .description('Add SSSQL optional filter branches near the closest source query')
+    .description('Add optional search condition branches near the closest source query')
     .addHelpText('after', `
 Use case:
-  Use this at development time to add a SQL-first optional filter to the SQL
+  Use this at development time to add a SQL-first optional search condition to the SQL
   file itself. Runtime code still consumes generated metadata; this command is
   not a runtime SQL string API.
 `)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--filter <name>', 'Target column for scalar scaffold, or primary anchor column for EXISTS/NOT EXISTS')
-    .option('--parameter <name>', 'Explicit parameter name for structured SSSQL scaffold')
+    .option('--parameter <name>', 'Explicit parameter name for structured optional-condition scaffold')
     .option('--operator <operator>', 'Scalar operator')
     .option('--kind <kind>', 'Structured branch kind: scalar, exists, or not-exists')
     .option('--query <sql>', 'Subquery SQL for EXISTS/NOT EXISTS scaffold')
@@ -200,13 +203,13 @@ Use case:
     .option('--ddl-dir <path>', 'Optional DDL directory for static row type hints')
     .option('--preview', 'Emit a unified diff without writing files')
     .option('--out <path>', 'Write output to file')
-    .action((sqlFile: string, options: QuerySssqlOptions) => {
-      process.stdout.write(runQuerySssqlAdd(sqlFile, options));
+    .action((sqlFile: string, options: QueryOptionalOptions) => {
+      process.stdout.write(runQueryOptionalAdd(sqlFile, options));
     });
 
-  sssql
+  optional
     .command('refresh <sqlFile>')
-    .description('Refresh existing SSSQL optional filter scaffolds without changing predicate meaning')
+    .description('Refresh existing optional search condition scaffolds without changing predicate meaning')
     .addHelpText('after', `
 Use case:
   Use this after editing optional-condition SQL by hand so generated query
@@ -215,28 +218,28 @@ Use case:
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--preview', 'Emit a unified diff without writing files')
     .option('--out <path>', 'Write output to file')
-    .action((sqlFile: string, options: QuerySssqlOptions) => {
-      process.stdout.write(runQuerySssqlRefresh(sqlFile, options));
+    .action((sqlFile: string, options: QueryOptionalOptions) => {
+      process.stdout.write(runQueryOptionalRefresh(sqlFile, options));
     });
 
-  sssql
+  optional
     .command('remove <sqlFile>')
-    .description('Remove one supported SSSQL optional filter branch safely')
+    .description('Remove one supported optional search condition branch safely')
     .addHelpText('after', `
 Use case:
   Use this when an optional condition is no longer part of the query contract.
   The SQL file is updated and metadata is refreshed together.
 `)
     .option('--format <format>', 'Output format: text or json', 'text')
-    .option('--all', 'Remove all recognized SSSQL branches in the query')
+    .option('--all', 'Remove all recognized optional condition branches in the query')
     .option('--parameter <name>', 'Parameter name that identifies the target branch')
     .option('--kind <kind>', 'Optional branch kind filter')
     .option('--operator <operator>', 'Optional scalar operator filter')
     .option('--target <target>', 'Optional target column filter')
     .option('--preview', 'Emit a unified diff without writing files')
     .option('--out <path>', 'Write output to file')
-    .action((sqlFile: string, options: QuerySssqlOptions) => {
-      process.stdout.write(runQuerySssqlRemove(sqlFile, options));
+    .action((sqlFile: string, options: QueryOptionalOptions) => {
+      process.stdout.write(runQueryOptionalRemove(sqlFile, options));
     });
 
   query
@@ -288,43 +291,43 @@ export function runQueryLint(sqlFile: string, options: QueryLintOptions = {}): s
 }
 
 /**
- * Adds SSSQL optional-condition branches and formats the CLI report.
+ * Adds optional-condition branches and formats the CLI report.
  */
-export function runQuerySssqlAdd(sqlFile: string, options: QuerySssqlOptions = {}): string {
-  const report = addSssql(sqlFile, {
+export function runQueryOptionalAdd(sqlFile: string, options: QueryOptionalOptions = {}): string {
+  const report = addOptionalCondition(sqlFile, {
     out: options.out,
     preview: Boolean(options.preview),
-    spec: buildSssqlScaffoldSpec(options),
-    filters: buildSssqlFilters(options),
+    spec: buildOptionalConditionScaffoldSpec(options),
+    filters: buildOptionalConditionFilters(options),
   });
-  refreshSssqlQueryMetadata(report, options);
-  return formatSssqlRewriteReport(report, options.format ?? 'text');
+  refreshOptionalConditionQueryMetadata(report, options);
+  return formatOptionalConditionRewriteReport(report, options.format ?? 'text');
 }
 
 /**
- * Refreshes existing SSSQL optional-condition branches and generated query metadata.
+ * Refreshes existing optional-condition branches and generated query metadata.
  */
-export function runQuerySssqlRefresh(sqlFile: string, options: QuerySssqlOptions = {}): string {
-  const report = refreshSssql(sqlFile, {
+export function runQueryOptionalRefresh(sqlFile: string, options: QueryOptionalOptions = {}): string {
+  const report = refreshOptionalConditions(sqlFile, {
     out: options.out,
     preview: Boolean(options.preview),
   });
-  refreshSssqlQueryMetadata(report, options);
-  return formatSssqlRewriteReport(report, options.format ?? 'text');
+  refreshOptionalConditionQueryMetadata(report, options);
+  return formatOptionalConditionRewriteReport(report, options.format ?? 'text');
 }
 
 /**
- * Removes SSSQL optional-condition branches and refreshes generated query metadata.
+ * Removes optional-condition branches and refreshes generated query metadata.
  */
-export function runQuerySssqlRemove(sqlFile: string, options: QuerySssqlOptions = {}): string {
-  const report = removeSssql(sqlFile, {
+export function runQueryOptionalRemove(sqlFile: string, options: QueryOptionalOptions = {}): string {
+  const report = removeOptionalCondition(sqlFile, {
     out: options.out,
     preview: Boolean(options.preview),
     all: Boolean(options.all),
-    spec: Boolean(options.all) ? undefined : buildSssqlRemoveSpec(options),
+    spec: Boolean(options.all) ? undefined : buildOptionalConditionRemoveSpec(options),
   });
-  refreshSssqlQueryMetadata(report, options);
-  return formatSssqlRewriteReport(report, options.format ?? 'text');
+  refreshOptionalConditionQueryMetadata(report, options);
+  return formatOptionalConditionRewriteReport(report, options.format ?? 'text');
 }
 
 /**
@@ -420,16 +423,16 @@ function normalizeLintRules(value: string | undefined): Array<'join-direction'> 
   return values as Array<'join-direction'>;
 }
 
-function buildSssqlFilters(options: QuerySssqlOptions): Record<string, null> | undefined {
-  if (buildSssqlScaffoldSpec(options)) {
+function buildOptionalConditionFilters(options: QueryOptionalOptions): Record<string, null> | undefined {
+  if (buildOptionalConditionScaffoldSpec(options)) {
     return undefined;
   }
   return options.filter ? { [options.filter]: null } : {};
 }
 
-function buildSssqlScaffoldSpec(options: QuerySssqlOptions): SssqlScaffoldSpec | undefined {
+function buildOptionalConditionScaffoldSpec(options: QueryOptionalOptions): OptionalConditionScaffoldSpec | undefined {
   const kind = options.kind?.trim().toLowerCase();
-  const query = resolveSssqlSubqueryInput(options.query, options.queryFile);
+  const query = resolveOptionalConditionSubqueryInput(options.query, options.queryFile);
   if (kind === 'exists' || kind === 'not-exists' || query) {
     return {
       kind: kind === 'not-exists' ? 'not-exists' : 'exists',
@@ -445,21 +448,21 @@ function buildSssqlScaffoldSpec(options: QuerySssqlOptions): SssqlScaffoldSpec |
     target: requireOption(options.filter, '--filter'),
     parameterName: options.parameter,
     operator: options.operator,
-  } as SssqlScaffoldSpec;
+  } as OptionalConditionScaffoldSpec;
 }
 
-function buildSssqlRemoveSpec(options: QuerySssqlOptions): SssqlRemoveSpec {
+function buildOptionalConditionRemoveSpec(options: QueryOptionalOptions): OptionalConditionRemoveSpec {
   return {
     parameterName: requireOption(options.parameter, '--parameter'),
-    kind: options.kind ? normalizeSssqlBranchKind(options.kind.trim().toLowerCase()) : undefined,
-    operator: options.operator as SssqlRemoveSpec['operator'],
+    kind: options.kind ? normalizeOptionalConditionBranchKind(options.kind.trim().toLowerCase()) : undefined,
+    operator: options.operator as OptionalConditionRemoveSpec['operator'],
     target: options.target,
   };
 }
 
-function refreshSssqlQueryMetadata(
+function refreshOptionalConditionQueryMetadata(
   report: { output_file: string; preview: boolean },
-  options: QuerySssqlOptions,
+  options: QueryOptionalOptions,
 ): void {
   if (report.preview) {
     return;
@@ -470,7 +473,7 @@ function refreshSssqlQueryMetadata(
   const postgres = compileNamedParameters(sql, { placeholderStyle: 'postgres' });
   const resultColumnContracts = buildQueryResultColumnContracts(sql, rootDir, options.ddlDir);
   const parameters = [...new Set(postgres.orderedNames)];
-  const analysis = analyzeQueryModel(sql, parameters, resultColumnContracts, { sssqlCompression: true });
+  const analysis = analyzeQueryModel(sql, parameters, resultColumnContracts, { optionalConditionCompression: true });
   const queryModel = {
     analysis,
     bindings: {
@@ -478,7 +481,7 @@ function refreshSssqlQueryMetadata(
         sourceHash: analysis.sourceHash,
         ...postgres,
         ...buildPostgresSafeSortBindingMetadata(sql, analysis.safeSort),
-        ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.sssqlCompression),
+        ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.optionalConditionCompression),
       },
     },
   };
@@ -486,18 +489,18 @@ function refreshSssqlQueryMetadata(
   mkdirSync(path.dirname(metadataPath), { recursive: true });
   writeFileSync(metadataPath, [
     '// Generated by Ashiba. Do not edit by hand.',
-    '// Refresh with `ashiba query sssql add|refresh|remove` or `ashiba feature query refresh` after SQL-only edits.',
+    '// Refresh with `ashiba query optional add|refresh|remove` or `ashiba feature query refresh` after SQL-only edits.',
     `export const queryModel = ${JSON.stringify(queryModel, null, 2)} as const;`,
     '',
   ].join('\n'), 'utf8');
 }
 
-function resolveSssqlSubqueryInput(sqlText: string | undefined, sqlFile: string | undefined): string | undefined {
+function resolveOptionalConditionSubqueryInput(sqlText: string | undefined, sqlFile: string | undefined): string | undefined {
   if (sqlText && sqlFile) {
     throw invalidCliInputError(
-      'ASHIBA_QUERY_SSSQL_INPUT_CONFLICT',
+      'ASHIBA_QUERY_OPTIONAL_INPUT_CONFLICT',
       'Use either --query or --query-file, not both.',
-      'Choose one SSSQL subquery input source and rerun the command.',
+      'Choose one optional-condition subquery input source and rerun the command.',
       { options: ['--query', '--query-file'] },
     );
   }
@@ -511,7 +514,7 @@ function requireOption(value: string | undefined, label: string): string {
   return value;
 }
 
-function formatSssqlRewriteReport(report: { commandName: string; file: string; output_file: string; preview: boolean; changed: boolean; written: boolean; sql: string; diff: string }, formatValue: string): string {
+function formatOptionalConditionRewriteReport(report: { commandName: string; file: string; output_file: string; preview: boolean; changed: boolean; written: boolean; sql: string; diff: string }, formatValue: string): string {
   const format = normalizeFormat(formatValue);
   if (format === 'json') {
     return `${JSON.stringify(report, null, 2)}\n`;

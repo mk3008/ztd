@@ -3,7 +3,7 @@
 
 > **AshibaPostgresQueryModel** = `object`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:42](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L42)
+Defined in: [packages/driver-adapter-pg/src/index.ts:42](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L42)
 
 CLI-generated query model required by the PostgreSQL adapter.
 
@@ -13,7 +13,7 @@ CLI-generated query model required by the PostgreSQL adapter.
 
 > **analysis**: `AshibaQueryModelAnalysis`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:43](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L43)
+Defined in: [packages/driver-adapter-pg/src/index.ts:43](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L43)
 
 ***
 
@@ -21,7 +21,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:43](https://github.com/mk30
 
 > `optional` **bindings?**: `object`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:44](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L44)
+Defined in: [packages/driver-adapter-pg/src/index.ts:44](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L44)
 
 #### postgres?
 
@@ -47,11 +47,11 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:44](https://github.com/mk30
 
 > **index**: `number`
 
-##### postgres.sssqlCompression?
+##### postgres.optionalConditionCompression?
 
-> `optional` **sssqlCompression?**: `object`
+> `optional` **optionalConditionCompression?**: `object`
 
-##### postgres.sssqlCompression.branches
+##### postgres.optionalConditionCompression.branches
 
 > **branches**: readonly `object`[]
 </div>

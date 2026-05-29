@@ -3,7 +3,7 @@
 
 > **AshibaMssqlQuerySource** = `object`
 
-Defined in: [packages/driver-adapter-mssql/src/index.ts:60](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mssql/src/index.ts#L60)
+Defined in: [packages/driver-adapter-mssql/src/index.ts:60](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mssql/src/index.ts#L60)
 
 File-backed SQL query source generated or loaded from a reviewed SQL file.
 
@@ -13,7 +13,7 @@ File-backed SQL query source generated or loaded from a reviewed SQL file.
 
 > **sql**: `string`
 
-Defined in: [packages/driver-adapter-mssql/src/index.ts:61](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mssql/src/index.ts#L61)
+Defined in: [packages/driver-adapter-mssql/src/index.ts:61](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mssql/src/index.ts#L61)
 
 ***
 
@@ -21,7 +21,7 @@ Defined in: [packages/driver-adapter-mssql/src/index.ts:61](https://github.com/m
 
 > **sqlPath**: `string`
 
-Defined in: [packages/driver-adapter-mssql/src/index.ts:62](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mssql/src/index.ts#L62)
+Defined in: [packages/driver-adapter-mssql/src/index.ts:62](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mssql/src/index.ts#L62)
 
 ***
 
@@ -29,7 +29,7 @@ Defined in: [packages/driver-adapter-mssql/src/index.ts:62](https://github.com/m
 
 > **queryModel**: [`AshibaMssqlQueryModel`](AshibaMssqlQueryModel.md)
 
-Defined in: [packages/driver-adapter-mssql/src/index.ts:63](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mssql/src/index.ts#L63)
+Defined in: [packages/driver-adapter-mssql/src/index.ts:63](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mssql/src/index.ts#L63)
 
 ***
 
@@ -37,5 +37,5 @@ Defined in: [packages/driver-adapter-mssql/src/index.ts:63](https://github.com/m
 
 > `optional` **metadata?**: `AshibaSqlExecutionMetadata`
 
-Defined in: [packages/driver-adapter-mssql/src/index.ts:64](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mssql/src/index.ts#L64)
+Defined in: [packages/driver-adapter-mssql/src/index.ts:64](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mssql/src/index.ts#L64)
 </div>

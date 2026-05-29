@@ -3,7 +3,7 @@
 
 > **getErrorMode**(`program`): `AshibaErrorMode`
 
-Defined in: [packages/cli/src/index.ts:81](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/cli/src/index.ts#L81)
+Defined in: [packages/cli/src/index.ts:88](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/cli/src/index.ts#L88)
 
 Resolve the configured human-oriented or AI-oriented error output mode.
 

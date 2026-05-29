@@ -3,7 +3,7 @@
 
 > **PgDumpCommandPreview** = `object`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:28](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L28)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:28](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L28)
 
 Executable and redacted arguments suitable for logs or diagnostics.
 
@@ -13,7 +13,7 @@ Executable and redacted arguments suitable for logs or diagnostics.
 
 > **command**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:29](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L29)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:29](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L29)
 
 ***
 
@@ -21,5 +21,5 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:29](https://github.com/mk300
 
 > **args**: `string`[]
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:30](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L30)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:30](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L30)
 </div>

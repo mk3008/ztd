@@ -62,7 +62,7 @@ If port `5432` is busy, change `ASHIBA_TEST_DB_PORT` in `.env`.
 ### 4. Scaffold a feature from the demo DDL
 
 ```bash
-npx ashiba feature scaffold --feature-name users-list --table users --action list
+npx ashiba feature scaffold users-list --table users --action list
 ```
 
 This gives you a small SQL-first feature boundary: visible SQL, editable query contracts, generated metadata, mapper boundaries, and test scaffolds.
@@ -101,7 +101,7 @@ Ashiba chooses DBMS and wrapped driver explicitly. PostgreSQL is the most comple
 
 | DBMS | Wrapped driver/tool | Package | Current status |
 |---|---|---|---|
-| PostgreSQL | `pg` | `@ashiba/driver-adapter-pg` | Most complete starter path. Includes generated query metadata, mapper-test lane, named-parameter binding, safe sort, SSSQL metadata, and tutorial coverage. |
+| PostgreSQL | `pg` | `@ashiba/driver-adapter-pg` | Most complete starter path. Includes generated query metadata, mapper-test lane, named-parameter binding, safe sort, optional-condition metadata, and tutorial coverage. |
 | PostgreSQL | `pg` testkit | `@ashiba/testkit-adapter-pg` | ZTD mapper-test adapter used by the PostgreSQL starter. |
 | PostgreSQL | `pg_dump` | `@ashiba/ddl-pull-pg-dump` | Optional helper for comparing production DDL from `pg_dump` with local DDL. |
 | MySQL | `mysql2` | `@ashiba/driver-adapter-mysql2` | Driver adapter exists. Full `ashiba init` starter and testkit path are not complete yet. |
@@ -129,7 +129,7 @@ Use this section as the entry point for daily work. The command API page links e
 | Run SQL lint and DDL-aware checks | `ashiba lint <path>` | [Command API](docs/api/commands.md#ashiba-lint) |
 | Inspect, visualize, or debug complex SQL | `ashiba query outline <sqlFile>`, `ashiba query graph <sqlFile>`, `ashiba query slice <sqlFile>` | [Command API](docs/api/commands.md#ashiba-query) |
 | Find SQL assets that reference a table or column | `ashiba query uses table <target>`, `ashiba query uses column <target>` | [Command API](docs/api/commands.md#ashiba-query-uses) |
-| Maintain SQL-first optional-condition metadata | `ashiba query sssql add <sqlFile>`, `ashiba query sssql refresh <sqlFile>`, `ashiba query sssql remove <sqlFile>` | [Command API](docs/api/commands.md#ashiba-query-sssql) |
+| Maintain SQL-first optional-condition metadata | `ashiba query optional add <sqlFile>`, `ashiba query optional refresh <sqlFile>`, `ashiba query optional remove <sqlFile>` | [Command API](docs/api/commands.md#ashiba-query-optional) |
 | Generate editable query contracts from a SQL file | `ashiba model-gen <sqlFile>` | [Command API](docs/api/commands.md#ashiba-model-gen) |
 | Capture DB-backed performance evidence | `ashiba perf scenario init`, `ashiba perf scenario measure` | [Command API](docs/api/commands.md#ashiba-perf-scenario) |
 | Inspect review-first feature and query boundaries | `ashiba rfba inspect` | [Command API](docs/api/commands.md#ashiba-rfba-inspect) |
@@ -139,7 +139,7 @@ Use this section as the entry point for daily work. The command API page links e
 ### I changed SQL
 
 ```bash
-npx ashiba feature query refresh --feature users-list --query list
+npx ashiba feature query refresh users-list list
 npx ashiba check
 npx ashiba check --full
 ```

@@ -418,10 +418,10 @@ function runCatalogContractCheck(options: {
         if (metadata.requiresMetadataFile && !metadata.hasQueryModel) {
           issues.push(`${metadata.expectedMetadataFile ?? 'generated/query.meta.ts'} is required for queryModel metadata but was not found.`);
         }
-        const checksSssqlCompression = metadata.analysisSssqlCompressionJson !== undefined
-          || metadata.bindingSssqlCompressionJson !== undefined;
+        const checksOptionalConditionCompression = metadata.analysisOptionalConditionCompressionJson !== undefined
+          || metadata.bindingOptionalConditionCompressionJson !== undefined;
         const currentAnalysis = analyzeQueryModel(sql, orderedUniqueSqlParameters, resultColumnContracts, {
-          sssqlCompression: checksSssqlCompression,
+          optionalConditionCompression: checksOptionalConditionCompression,
         });
         queryModelSourceHash = metadata.queryModelSourceHash;
         bindingSourceHash = metadata.bindingSourceHash;
@@ -474,11 +474,11 @@ function runCatalogContractCheck(options: {
           } else if (metadata.analysisSafeSortJson !== JSON.stringify(currentAnalysis.safeSort)) {
             issues.push('queryModel.analysis.safeSort is stale.');
           }
-          if (checksSssqlCompression) {
-            if (!metadata.analysisSssqlCompressionJson) {
-              issues.push('queryModel.analysis.sssqlCompression is missing.');
-            } else if (metadata.analysisSssqlCompressionJson !== JSON.stringify(currentAnalysis.sssqlCompression)) {
-              issues.push('queryModel.analysis.sssqlCompression is stale.');
+          if (checksOptionalConditionCompression) {
+            if (!metadata.analysisOptionalConditionCompressionJson) {
+              issues.push('queryModel.analysis.optionalConditionCompression is missing.');
+            } else if (metadata.analysisOptionalConditionCompressionJson !== JSON.stringify(currentAnalysis.optionalConditionCompression)) {
+              issues.push('queryModel.analysis.optionalConditionCompression is stale.');
             }
           }
           if (!metadata.bindingSourceHash) {
@@ -495,15 +495,15 @@ function runCatalogContractCheck(options: {
           ) {
             issues.push('queryModel.bindings.postgres.orderedNames is stale.');
           }
-          if (checksSssqlCompression) {
-            const currentBindingSssqlCompression = buildPostgresOptionalConditionCompressionBindingMetadata(
+          if (checksOptionalConditionCompression) {
+            const currentBindingOptionalConditionCompression = buildPostgresOptionalConditionCompressionBindingMetadata(
               sql,
-              currentAnalysis.sssqlCompression,
-            ).sssqlCompression;
-            if (!metadata.bindingSssqlCompressionJson) {
-              issues.push('queryModel.bindings.postgres.sssqlCompression is missing.');
-            } else if (metadata.bindingSssqlCompressionJson !== JSON.stringify(currentBindingSssqlCompression)) {
-              issues.push('queryModel.bindings.postgres.sssqlCompression is stale.');
+              currentAnalysis.optionalConditionCompression,
+            ).optionalConditionCompression;
+            if (!metadata.bindingOptionalConditionCompressionJson) {
+              issues.push('queryModel.bindings.postgres.optionalConditionCompression is missing.');
+            } else if (metadata.bindingOptionalConditionCompressionJson !== JSON.stringify(currentBindingOptionalConditionCompression)) {
+              issues.push('queryModel.bindings.postgres.optionalConditionCompression is stale.');
             }
           }
         }
@@ -577,10 +577,10 @@ function extractQueryModelMetadata(specFilePath: string): {
   analysisResultColumns: string[];
   analysisResultColumnTypesJson?: string;
   analysisSafeSortJson?: string;
-  analysisSssqlCompressionJson?: string;
+  analysisOptionalConditionCompressionJson?: string;
   bindingSql?: string;
   bindingOrderedNames: string[];
-  bindingSssqlCompressionJson?: string;
+  bindingOptionalConditionCompressionJson?: string;
   hasInlineQueryModel?: boolean;
   requiresMetadataFile?: boolean;
   expectedMetadataFile?: string;
@@ -631,8 +631,8 @@ function extractQueryModelMetadata(specFilePath: string): {
   const analysisSafeSortJson = analysisObject && Object.prototype.hasOwnProperty.call(analysisObject, 'safeSort')
     ? JSON.stringify(analysisObject.safeSort)
     : undefined;
-  const analysisSssqlCompressionJson = analysisObject && Object.prototype.hasOwnProperty.call(analysisObject, 'sssqlCompression')
-    ? JSON.stringify(analysisObject.sssqlCompression)
+  const analysisOptionalConditionCompressionJson = analysisObject && Object.prototype.hasOwnProperty.call(analysisObject, 'optionalConditionCompression')
+    ? JSON.stringify(analysisObject.optionalConditionCompression)
     : undefined;
   const bindingsObject = parseObjectLiteralAfter(source, 'bindings:')
     ?? parseObjectLiteralAfter(source, '"bindings":');
@@ -644,8 +644,8 @@ function extractQueryModelMetadata(specFilePath: string): {
   const bindingSql = rawBindingSql ? JSON.parse(`"${rawBindingSql}"`) as string : undefined;
   const bindingOrderedNames = readStringArrayProperty(postgresObject, 'orderedNames')
     ?? extractStringArray(postgresBlock, 'orderedNames');
-  const bindingSssqlCompressionJson = postgresObject && Object.prototype.hasOwnProperty.call(postgresObject, 'sssqlCompression')
-    ? JSON.stringify(postgresObject.sssqlCompression)
+  const bindingOptionalConditionCompressionJson = postgresObject && Object.prototype.hasOwnProperty.call(postgresObject, 'optionalConditionCompression')
+    ? JSON.stringify(postgresObject.optionalConditionCompression)
     : undefined;
 
   return {
@@ -660,10 +660,10 @@ function extractQueryModelMetadata(specFilePath: string): {
     analysisResultColumns,
     analysisResultColumnTypesJson,
     analysisSafeSortJson,
-    analysisSssqlCompressionJson,
+    analysisOptionalConditionCompressionJson,
     bindingSql,
     bindingOrderedNames,
-    bindingSssqlCompressionJson,
+    bindingOptionalConditionCompressionJson,
     hasInlineQueryModel,
     requiresMetadataFile,
     expectedMetadataFile: normalizePath(metadataRelativePath),

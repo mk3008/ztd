@@ -1,7 +1,7 @@
 <div v-pre>
 # Class: AshibaSortError
 
-Defined in: [packages/driver-adapter-core/src/index.ts:121](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-core/src/index.ts#L121)
+Defined in: [packages/driver-adapter-core/src/index.ts:121](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L121)
 
 Error raised when a safe sort request violates the reviewed query model or sort profile.
 
@@ -15,7 +15,7 @@ Error raised when a safe sort request violates the reviewed query model or sort 
 
 > **new AshibaSortError**(`code`, `message`): `AshibaSortError`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:134](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-core/src/index.ts#L134)
+Defined in: [packages/driver-adapter-core/src/index.ts:134](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L134)
 
 #### Parameters
 
@@ -41,7 +41,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:134](https://github.com/m
 
 > `readonly` **code**: `"ASHIBA_UNKNOWN_SORT_KEY"` \| `"ASHIBA_INVALID_SORT_DIRECTION"` \| `"ASHIBA_EMPTY_SORT_PROFILE"` \| `"ASHIBA_SORT_QUERY_MODEL_REQUIRED"` \| `"ASHIBA_SORT_UNSUPPORTED_QUERY_MODEL"` \| `"ASHIBA_SORT_QUERY_MODEL_STALE"` \| `"ASHIBA_SORT_INSERTION_UNRESOLVED"` \| `"ASHIBA_SORT_PROFILE_OUTSIDE_QUERY_MODEL"`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:122](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-core/src/index.ts#L122)
+Defined in: [packages/driver-adapter-core/src/index.ts:122](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L122)
 
 ***
 
@@ -49,7 +49,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:122](https://github.com/m
 
 > `readonly` **causeText**: `string`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:131](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-core/src/index.ts#L131)
+Defined in: [packages/driver-adapter-core/src/index.ts:131](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L131)
 
 ***
 
@@ -57,7 +57,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:131](https://github.com/m
 
 > `readonly` **nextAction**: `string`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:132](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-core/src/index.ts#L132)
+Defined in: [packages/driver-adapter-core/src/index.ts:132](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L132)
 
 ***
 

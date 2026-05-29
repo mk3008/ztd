@@ -1,7 +1,7 @@
 <div v-pre>
 # Class: AshibaPostgresQueryModelError
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:126](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L126)
+Defined in: [packages/driver-adapter-pg/src/index.ts:126](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L126)
 
 Error raised when required query model metadata is missing or stale.
 
@@ -15,13 +15,13 @@ Error raised when required query model metadata is missing or stale.
 
 > **new AshibaPostgresQueryModelError**(`code`, `message`): `AshibaPostgresQueryModelError`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:136](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L136)
+Defined in: [packages/driver-adapter-pg/src/index.ts:136](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L136)
 
 #### Parameters
 
 ##### code
 
-`"ASHIBA_QUERY_MODEL_STALE"` \| `"ASHIBA_BINDING_METADATA_REQUIRED"` \| `"ASHIBA_SSSQL_COMPRESSION_METADATA_REQUIRED"` \| `"ASHIBA_SSSQL_COMPRESSION_UNSUPPORTED_QUERY_MODEL"` \| `"ASHIBA_SSSQL_COMPRESSION_METADATA_STALE"`
+`"ASHIBA_QUERY_MODEL_STALE"` \| `"ASHIBA_BINDING_METADATA_REQUIRED"` \| `"ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_REQUIRED"` \| `"ASHIBA_OPTIONAL_CONDITION_COMPRESSION_UNSUPPORTED_QUERY_MODEL"` \| `"ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE"`
 
 ##### message
 
@@ -39,9 +39,9 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:136](https://github.com/mk3
 
 ### code
 
-> `readonly` **code**: `"ASHIBA_QUERY_MODEL_STALE"` \| `"ASHIBA_BINDING_METADATA_REQUIRED"` \| `"ASHIBA_SSSQL_COMPRESSION_METADATA_REQUIRED"` \| `"ASHIBA_SSSQL_COMPRESSION_UNSUPPORTED_QUERY_MODEL"` \| `"ASHIBA_SSSQL_COMPRESSION_METADATA_STALE"`
+> `readonly` **code**: `"ASHIBA_QUERY_MODEL_STALE"` \| `"ASHIBA_BINDING_METADATA_REQUIRED"` \| `"ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_REQUIRED"` \| `"ASHIBA_OPTIONAL_CONDITION_COMPRESSION_UNSUPPORTED_QUERY_MODEL"` \| `"ASHIBA_OPTIONAL_CONDITION_COMPRESSION_METADATA_STALE"`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:127](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L127)
+Defined in: [packages/driver-adapter-pg/src/index.ts:127](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L127)
 
 ***
 
@@ -49,7 +49,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:127](https://github.com/mk3
 
 > `readonly` **causeText**: `string`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:133](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L133)
+Defined in: [packages/driver-adapter-pg/src/index.ts:133](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L133)
 
 ***
 
@@ -57,7 +57,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:133](https://github.com/mk3
 
 > `readonly` **nextAction**: `string`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:134](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-pg/src/index.ts#L134)
+Defined in: [packages/driver-adapter-pg/src/index.ts:134](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L134)
 
 ***
 

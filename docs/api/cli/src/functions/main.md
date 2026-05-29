@@ -3,7 +3,7 @@
 
 > **main**(`argv?`): `Promise`&lt;`void`\&gt;
 
-Defined in: [packages/cli/src/index.ts:73](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/cli/src/index.ts#L73)
+Defined in: [packages/cli/src/index.ts:80](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/cli/src/index.ts#L80)
 
 Run the Ashiba CLI with the provided argv vector.
 

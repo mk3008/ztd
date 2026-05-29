@@ -1,7 +1,7 @@
 <div v-pre>
 # Class: AshibaDdlPullError
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:36](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L36)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:36](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L36)
 
 Error raised when pg_dump cannot be started or exits unsuccessfully.
 
@@ -15,7 +15,7 @@ Error raised when pg_dump cannot be started or exits unsuccessfully.
 
 > **new AshibaDdlPullError**(`code`, `message`, `params`): `AshibaDdlPullError`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:44](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L44)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:44](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L44)
 
 #### Parameters
 
@@ -63,7 +63,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:44](https://github.com/mk300
 
 > `readonly` **code**: `"ASHIBA_DDL_PULL_FAILED"` \| `"ASHIBA_DDL_PULL_SPAWN_FAILED"`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:37](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L37)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:37](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L37)
 
 ***
 
@@ -71,7 +71,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:37](https://github.com/mk300
 
 > `readonly` **exitCode**: `number` \| `null`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:38](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L38)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:38](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L38)
 
 ***
 
@@ -79,7 +79,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:38](https://github.com/mk300
 
 > `readonly` **stderr**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:39](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L39)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:39](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L39)
 
 ***
 
@@ -87,7 +87,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:39](https://github.com/mk300
 
 > `readonly` **causeText**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:40](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L40)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:40](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L40)
 
 ***
 
@@ -95,7 +95,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:40](https://github.com/mk300
 
 > `readonly` **nextAction**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:41](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L41)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:41](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L41)
 
 ***
 
@@ -103,7 +103,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:41](https://github.com/mk300
 
 > `readonly` **details**: `Record`&lt;`string`, `unknown`\&gt;
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:42](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L42)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:42](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L42)
 
 ***
 

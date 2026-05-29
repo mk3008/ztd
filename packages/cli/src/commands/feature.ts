@@ -211,44 +211,41 @@ export function registerFeatureCommand(program: Command): void {
   const generatedMapper = feature.command('generated-mapper').description('Check editable generated mapper drift');
 
   feature
-    .command('scaffold')
+    .command('scaffold <name>')
     .description('Scaffold a feature-local CRUD or SELECT boundary from DDL metadata')
     .requiredOption('--table <table>', 'Target table name')
     .requiredOption('--action <action>', 'Action: insert, update, delete, get-by-id, or list')
-    .option('--feature-name <name>', 'Override the derived feature name')
     .option('--root-dir <path>', 'Project root directory', '.')
     .option('--dry-run', 'Print the files that would be created without writing them', false)
     .option('--force', 'Overwrite scaffold-owned files when they already exist', false)
-    .action((options: FeatureScaffoldOptions) => {
-      process.stdout.write(formatFeatureScaffoldResult('Feature scaffold', runFeatureScaffold(options)));
+    .action((featureName: string, options: FeatureScaffoldOptions) => {
+      process.stdout.write(formatFeatureScaffoldResult('Feature scaffold', runFeatureScaffold({ ...options, featureName })));
     });
 
   query
-    .command('scaffold')
+    .command('scaffold <feature> <query>')
     .description('Scaffold one additive query boundary without rewriting parent orchestration')
     .requiredOption('--table <table>', 'Target table name')
     .requiredOption('--action <action>', 'Action: insert, update, delete, get-by-id, or list')
-    .requiredOption('--query-name <name>', 'Query boundary name')
-    .option('--feature <name>', 'Resolve target as src/features/<feature>')
-    .option('--boundary-dir <path>', 'Explicit boundary directory')
     .option('--root-dir <path>', 'Project root directory', '.')
     .option('--dry-run', 'Print the files that would be created without writing them', false)
     .option('--force', 'Overwrite scaffold-owned query files when they already exist', false)
-    .action((options: FeatureQueryScaffoldOptions) => {
-      process.stdout.write(formatFeatureScaffoldResult('Feature query scaffold', runFeatureQueryScaffold(options)));
+    .action((featureName: string, queryName: string, options: FeatureQueryScaffoldOptions) => {
+      process.stdout.write(formatFeatureScaffoldResult('Feature query scaffold', runFeatureQueryScaffold({
+        ...options,
+        feature: featureName,
+        queryName,
+      })));
     });
 
   query
-    .command('refresh')
+    .command('refresh <feature> <query>')
     .description('Refresh query model metadata after editing visible SQL')
-    .requiredOption('--query <name>', 'Query boundary name under the feature queries directory')
-    .option('--feature <name>', 'Resolve target as src/features/<feature>')
-    .option('--boundary-dir <path>', 'Explicit boundary directory')
     .option('--root-dir <path>', 'Project root directory', '.')
     .option('--dry-run', 'Print the refresh result without writing generated query metadata', false)
     .option('--format <format>', 'Output format: text or json', 'text')
-    .action((options: FeatureQueryMetadataRefreshOptions) => {
-      const result = runFeatureQueryMetadataRefresh(options);
+    .action((featureName: string, queryName: string, options: FeatureQueryMetadataRefreshOptions) => {
+      const result = runFeatureQueryMetadataRefresh({ ...options, feature: featureName, query: queryName });
       if (options.format === 'json') {
         process.stdout.write(`${JSON.stringify({ kind: 'feature-query-refresh', ...result }, null, 2)}\n`);
         return;
@@ -257,30 +254,27 @@ export function registerFeatureCommand(program: Command): void {
     });
 
   tests
-    .command('scaffold')
+    .command('scaffold <feature>')
     .description('Scaffold editable mapper test files and library-owned generated test schema files')
-    .option('--feature <name>', 'Feature name under src/features')
-    .option('--boundary-dir <path>', 'Explicit feature boundary directory, including subgrouped boundaries')
     .option('--query <name>', 'Limit scaffolding to one query boundary')
     .option('--root-dir <path>', 'Project root directory', '.')
     .option('--dry-run', 'Print the files that would be created without writing them', false)
     .option('--force', 'Overwrite scaffold-owned test files when they already exist', false)
-    .action((options: FeatureTestsScaffoldOptions) => {
-      const result = runFeatureTestsScaffold(options);
+    .action((featureName: string, options: FeatureTestsScaffoldOptions) => {
+      const result = runFeatureTestsScaffold({ ...options, feature: featureName });
       process.stdout.write(formatFilePlan('Feature tests scaffold', result.rootDir, result.dryRun, result.outputs));
     });
 
   tests
-    .command('check')
+    .command('check [feature]')
     .description('Detect missing or drifted generated mapping test assets')
-    .option('--feature <name>', 'Feature name under src/features')
     .option('--boundary-dir <path>', 'Explicit feature boundary directory, including subgrouped boundaries')
     .option('--query <name>', 'Limit check to one query boundary')
     .option('--root-dir <path>', 'Project root directory', '.')
     .option('--fix', 'Rewrite generated mapping test assets and create missing logic-case stubs', false)
     .option('--format <format>', 'Output format: text or json', 'text')
-    .action((options: FeatureTestsCheckOptions) => {
-      const result = runFeatureTestsCheck(withConfiguredFeatureRoot(options));
+    .action((featureName: string | undefined, options: FeatureTestsCheckOptions) => {
+      const result = runFeatureTestsCheck(withConfiguredFeatureRoot({ ...options, feature: featureName ?? options.feature }));
       if (options.format === 'json') {
         process.stdout.write(`${JSON.stringify({ kind: 'feature-tests-check', ...result }, null, 2)}\n`);
         if (!result.ok) process.exitCode = 1;
@@ -291,15 +285,14 @@ export function registerFeatureCommand(program: Command): void {
     });
 
   generatedMapper
-    .command('check')
+    .command('check [feature]')
     .description('Check SQL named parameters against editable generated query mapper contracts')
-    .option('--feature <name>', 'Limit drift check to one feature under src/features')
     .option('--boundary-dir <path>', 'Limit drift check to one explicit feature boundary directory, including subgrouped boundaries')
     .option('--query <name>', 'Limit drift check to one query boundary')
     .option('--root-dir <path>', 'Project root directory', '.')
     .option('--format <format>', 'Output format: text or json', 'text')
-    .action((options: FeatureGeneratedMapperCheckOptions) => {
-      const result = runFeatureGeneratedMapperCheck(withConfiguredFeatureRoot(options));
+    .action((featureName: string | undefined, options: FeatureGeneratedMapperCheckOptions) => {
+      const result = runFeatureGeneratedMapperCheck(withConfiguredFeatureRoot({ ...options, feature: featureName ?? options.feature }));
       if (options.format === 'json') {
         process.stdout.write(`${JSON.stringify({ kind: 'feature-generated-mapper-check', ...result }, null, 2)}\n`);
         if (!result.ok) process.exitCode = 1;
@@ -361,7 +354,7 @@ export function runFeatureQueryScaffold(options: FeatureQueryScaffoldOptions): F
     throw invalidCliInputError(
       'ASHIBA_FEATURE_BOUNDARY_FILE_MISSING',
       `Boundary directory must contain boundary.ts: ${relativeBoundary}.`,
-      'Run feature scaffold first, or pass --boundary-dir/--feature for an existing feature boundary.',
+      'Run feature scaffold first, then pass the feature name to feature query scaffold.',
       { boundaryDir: relativeBoundary },
     );
   }
@@ -397,7 +390,7 @@ export function runFeatureQueryMetadataRefresh(options: FeatureQueryMetadataRefr
     throw invalidCliInputError(
       'ASHIBA_FEATURE_QUERY_SQL_NOT_FOUND',
       `SQL file was not found for query metadata refresh: ${toProjectPath(rootDir, sqlPath)}.`,
-      'Run feature query scaffold first, or pass the correct --feature/--boundary-dir and --query values.',
+      'Run feature query scaffold first, or pass the correct feature and query positional values.',
       { sqlFile: toProjectPath(rootDir, sqlPath) },
     );
   }
@@ -617,7 +610,7 @@ export function runFeatureTestsCheck(options: FeatureTestsCheckOptions = {}): Fe
     throw invalidCliInputError(
       'ASHIBA_FEATURE_QUERY_TESTS_NOT_FOUND',
       'No feature query test boundaries were discovered for tests check.',
-      'Run feature scaffold/query scaffold first, or pass --feature/--boundary-dir/--query for an existing feature query boundary.',
+      'Run feature scaffold/query scaffold first, or pass a feature positional value, --boundary-dir, or --query for an existing feature query boundary.',
       { rootDir },
     );
   }
@@ -717,7 +710,7 @@ export function runFeatureGeneratedMapperCheck(options: FeatureGeneratedMapperCh
     throw invalidCliInputError(
       'ASHIBA_FEATURE_QUERY_BOUNDARIES_NOT_FOUND',
       'No feature query boundaries were discovered for generated mapper drift check.',
-      'Run feature scaffold/query scaffold first, or pass --feature/--query for an existing feature query boundary.',
+      'Run feature scaffold/query scaffold first, or pass a feature positional value or --query for an existing feature query boundary.',
       { rootDir },
     );
   }
@@ -790,9 +783,9 @@ function discoverFeatureBoundaries(rootDir: string, featureName?: string, bounda
   if (featureName && boundaryDir) {
     throw invalidCliInputError(
       'ASHIBA_FEATURE_BOUNDARY_INPUT_CONFLICT',
-      'Use either --feature or --boundary-dir, not both.',
+      'Use either a feature name or --boundary-dir, not both.',
       'Choose one boundary selector and rerun the command.',
-      { options: ['--feature', '--boundary-dir'] },
+      { options: ['<feature>', '--boundary-dir'] },
     );
   }
   if (boundaryDir) {
@@ -807,7 +800,7 @@ function discoverFeatureBoundaries(rootDir: string, featureName?: string, bounda
     throw invalidCliInputError(
       'ASHIBA_FEATURES_DIR_MISSING',
       `No ${featureRoot} directory was discovered.`,
-      'Run ashiba feature scaffold first, or pass --feature for an existing feature directory.',
+      'Run ashiba feature scaffold first, or pass a feature positional value for an existing feature directory.',
       { featuresDir: toProjectPath(rootDir, featuresDir) },
     );
   }
@@ -1226,7 +1219,7 @@ function buildSharedFiles(): GeneratedFile[] {
         '  sqlPath: string;',
         '  sql: string;',
         '  queryModel: FeatureQueryModel;',
-        '  sssqlCompression?: boolean;',
+        '  optionalConditionCompression?: boolean;',
         '  metadata?: {',
         '    sqlId?: string;',
         '    queryId?: string;',
@@ -1817,7 +1810,7 @@ function renderQueryBoundary(
     `  sqlPath: '${queryName}.sql',`,
     `  sql: ${camel}Sql,`,
     '  queryModel,',
-    '  sssqlCompression: true,',
+    '  optionalConditionCompression: true,',
     '  metadata: {',
     `    sqlId: '${queryName}',`,
     `    queryId: '${queryName}',`,
@@ -1865,7 +1858,7 @@ function buildFeatureQueryModel(sql: string, rootDir: string): {
   const parameters = [...new Set(postgres.orderedNames)];
   const ddlModel = loadDdlSchemaModel(rootDir);
   const analysis = analyzeQueryModel(sql, parameters, resultColumnContracts, {
-    sssqlCompression: true,
+    optionalConditionCompression: true,
     parameterTypes: ddlModel ? inferSqlParameterTypes(sql, ddlModel).parameterTypes : undefined,
   });
   return {
@@ -1875,7 +1868,7 @@ function buildFeatureQueryModel(sql: string, rootDir: string): {
         sourceHash,
         ...postgres,
         ...buildPostgresSafeSortBindingMetadata(sql, analysis.safeSort),
-        ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.sssqlCompression),
+        ...buildPostgresOptionalConditionCompressionBindingMetadata(sql, analysis.optionalConditionCompression),
       },
     },
   };
@@ -2442,9 +2435,9 @@ function resolveBoundaryDir(rootDir: string, options: FeatureQueryScaffoldOption
   if (options.feature && options.boundaryDir) {
     throw invalidCliInputError(
       'ASHIBA_FEATURE_BOUNDARY_INPUT_CONFLICT',
-      'Use either --feature or --boundary-dir, not both.',
+      'Use either a feature name or --boundary-dir, not both.',
       'Choose one boundary selector and rerun the command.',
-      { options: ['--feature', '--boundary-dir'] },
+      { options: ['<feature>', '--boundary-dir'] },
     );
   }
   if (options.feature) return path.join(rootDir, 'src', 'features', normalizeFeatureName(options.feature));
@@ -2456,18 +2449,18 @@ function resolveExplicitFeatureBoundaryDir(rootDir: string, feature: string | un
   if (feature && boundaryDir) {
     throw invalidCliInputError(
       'ASHIBA_FEATURE_BOUNDARY_INPUT_CONFLICT',
-      'Use either --feature or --boundary-dir, not both.',
+      'Use either a feature name or --boundary-dir, not both.',
       'Choose one boundary selector and rerun the command.',
-      { options: ['--feature', '--boundary-dir'] },
+      { options: ['<feature>', '--boundary-dir'] },
     );
   }
   if (boundaryDir) return path.resolve(rootDir, boundaryDir);
   if (feature) return path.join(rootDir, 'src', 'features', normalizeFeatureName(feature));
   throw invalidCliInputError(
     'ASHIBA_FEATURE_BOUNDARY_REQUIRED',
-    `${commandLabel} requires --feature or --boundary-dir.`,
-    'Pass --feature for a top-level feature, or --boundary-dir for a subgrouped feature boundary.',
-    { options: ['--feature', '--boundary-dir'] },
+    `${commandLabel} requires a feature name or --boundary-dir.`,
+    'Pass a feature name for a top-level feature, or --boundary-dir for a subgrouped feature boundary.',
+    { options: ['<feature>', '--boundary-dir'] },
   );
 }
 

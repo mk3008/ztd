@@ -3,7 +3,7 @@
 
 > **AshibaMysql2AdapterOptions** = `object`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:36](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mysql2/src/index.ts#L36)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:36](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L36)
 
 Adapter-level options for execution observation and parameter masking.
 
@@ -13,7 +13,7 @@ Adapter-level options for execution observation and parameter masking.
 
 > `optional` **observer?**: `AshibaSqlExecutionObserver`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:37](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mysql2/src/index.ts#L37)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:37](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L37)
 
 ***
 
@@ -21,7 +21,7 @@ Defined in: [packages/driver-adapter-mysql2/src/index.ts:37](https://github.com/
 
 > `optional` **maskPolicy?**: `AshibaMaskPolicy`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:38](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mysql2/src/index.ts#L38)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:38](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L38)
 
 ***
 
@@ -29,5 +29,5 @@ Defined in: [packages/driver-adapter-mysql2/src/index.ts:38](https://github.com/
 
 > `optional` **includeUnmaskedParamsInEvents?**: `boolean`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:39](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-mysql2/src/index.ts#L39)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:39](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L39)
 </div>

@@ -236,7 +236,7 @@ export interface FeatureQuerySource {
   sqlPath: string;
   sql: string;
   queryModel: FeatureQueryModel;
-  sssqlCompression?: boolean;
+  optionalConditionCompression?: boolean;
   metadata?: {
     sqlId?: string;
     queryId?: string;
@@ -323,7 +323,7 @@ export function createPgSqlClient(
         params,
         {
           ...executeOptions,
-          sssqlCompression: query.sssqlCompression ?? executeOptions?.sssqlCompression,
+          optionalConditionCompression: query.optionalConditionCompression ?? executeOptions?.optionalConditionCompression,
         },
       );
       return result.rows;

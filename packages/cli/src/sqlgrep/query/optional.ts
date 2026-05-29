@@ -4,32 +4,32 @@ import { createTwoFilesPatch } from 'diff';
 import {
   collectSupportedOptionalConditionBranches,
   SelectQueryParser,
-  SSSQLFilterBuilder,
+  SSSQLFilterBuilder as OptionalConditionBuilder,
   SqlFormatter,
-  type SssqlBranchInfo,
-  type SssqlBranchKind,
-  type SssqlRemoveSpec,
-  type SssqlScaffoldFilters,
-  type SssqlScaffoldSpec,
+  type SssqlBranchInfo as OptionalConditionBranchInfo,
+  type SssqlBranchKind as OptionalConditionBranchKind,
+  type SssqlRemoveSpec as OptionalConditionRemoveSpec,
+  type SssqlScaffoldFilters as OptionalConditionScaffoldFilters,
+  type SssqlScaffoldSpec as OptionalConditionScaffoldSpec,
 } from 'rawsql-ts';
 import { invalidCliInputError } from '../../errors.js';
 
-export interface SssqlRewriteOptions {
+export interface OptionalConditionRewriteOptions {
   out?: string;
   preview?: boolean;
 }
 
-export interface SssqlScaffoldOptions extends SssqlRewriteOptions {
-  filters?: SssqlScaffoldFilters;
-  spec?: SssqlScaffoldSpec;
+export interface OptionalConditionScaffoldOptions extends OptionalConditionRewriteOptions {
+  filters?: OptionalConditionScaffoldFilters;
+  spec?: OptionalConditionScaffoldSpec;
 }
 
-export interface SssqlRemoveOptions extends SssqlRewriteOptions {
+export interface OptionalConditionRemoveOptions extends OptionalConditionRewriteOptions {
   all?: boolean;
-  spec?: SssqlRemoveSpec;
+  spec?: OptionalConditionRemoveSpec;
 }
 
-export interface SssqlRewriteReport {
+export interface OptionalConditionRewriteReport {
   commandName: string;
   file: string;
   output_file: string;
@@ -40,24 +40,24 @@ export interface SssqlRewriteReport {
   diff: string;
 }
 
-export function listSssqlBranches(sqlFile: string): SssqlBranchInfo[] {
-  return new SSSQLFilterBuilder().list(readFileSync(path.resolve(sqlFile), 'utf8'));
+export function listOptionalConditionBranches(sqlFile: string): OptionalConditionBranchInfo[] {
+  return new OptionalConditionBuilder().list(readFileSync(path.resolve(sqlFile), 'utf8'));
 }
 
 /**
- * Adds SQL-first optional-condition SSSQL branches to a query file.
+ * Adds SQL-first optional-condition branches to a query file.
  */
-export function addSssql(sqlFile: string, options: SssqlScaffoldOptions = {}): SssqlRewriteReport {
-  return applySssqlScaffoldRewrite(sqlFile, 'query sssql add', options);
+export function addOptionalCondition(sqlFile: string, options: OptionalConditionScaffoldOptions = {}): OptionalConditionRewriteReport {
+  return applyOptionalConditionScaffoldRewrite(sqlFile, 'query optional add', options);
 }
 
-function applySssqlScaffoldRewrite(
+function applyOptionalConditionScaffoldRewrite(
   sqlFile: string,
   commandName: string,
-  options: SssqlScaffoldOptions
-): SssqlRewriteReport {
-  return applySssqlRewrite(sqlFile, commandName, options, (sql) => {
-    const builder = new SSSQLFilterBuilder();
+  options: OptionalConditionScaffoldOptions
+): OptionalConditionRewriteReport {
+  return applyOptionalConditionRewrite(sqlFile, commandName, options, (sql) => {
+    const builder = new OptionalConditionBuilder();
     if (options.spec) {
       return builder.scaffoldBranch(sql, options.spec);
     }
@@ -65,25 +65,25 @@ function applySssqlScaffoldRewrite(
   });
 }
 
-export function refreshSssql(sqlFile: string, options: SssqlRewriteOptions = {}): SssqlRewriteReport {
-  return applySssqlRewrite(sqlFile, 'query sssql refresh', options, (sql) => {
+export function refreshOptionalConditions(sqlFile: string, options: OptionalConditionRewriteOptions = {}): OptionalConditionRewriteReport {
+  return applyOptionalConditionRewrite(sqlFile, 'query optional refresh', options, (sql) => {
     const parsed = SelectQueryParser.parse(sql);
     const existingBranches = collectSupportedOptionalConditionBranches(parsed);
     const filters = Object.fromEntries(existingBranches.map((branch) => [branch.parameterName, null]));
-    return new SSSQLFilterBuilder().refresh(parsed, filters);
+    return new OptionalConditionBuilder().refresh(parsed, filters);
   });
 }
 
-export function removeSssql(sqlFile: string, options: SssqlRemoveOptions): SssqlRewriteReport {
-  return applySssqlRewrite(sqlFile, 'query sssql remove', options, (sql) => {
-    const builder = new SSSQLFilterBuilder();
+export function removeOptionalCondition(sqlFile: string, options: OptionalConditionRemoveOptions): OptionalConditionRewriteReport {
+  return applyOptionalConditionRewrite(sqlFile, 'query optional remove', options, (sql) => {
+    const builder = new OptionalConditionBuilder();
     if (options.all) {
       return builder.removeAll(sql);
     }
     if (!options.spec) {
       throw invalidCliInputError(
-        'ASHIBA_QUERY_SSSQL_REMOVE_TARGET_REQUIRED',
-        'query sssql remove requires either --all or --parameter.',
+        'ASHIBA_QUERY_OPTIONAL_REMOVE_TARGET_REQUIRED',
+        'query optional remove requires either --all or --parameter.',
         'Pass --all to remove all supported branches, or pass --parameter for the branch to remove.',
       );
     }
@@ -91,24 +91,24 @@ export function removeSssql(sqlFile: string, options: SssqlRemoveOptions): Sssql
   });
 }
 
-export function normalizeSssqlBranchKind(value: string): SssqlBranchKind {
+export function normalizeOptionalConditionBranchKind(value: string): OptionalConditionBranchKind {
   if (value === 'scalar' || value === 'exists' || value === 'not-exists' || value === 'expression') {
     return value;
   }
   throw invalidCliInputError(
-    'ASHIBA_QUERY_SSSQL_BRANCH_KIND_UNSUPPORTED',
-    `Unsupported SSSQL branch kind: ${value}.`,
-    'Use scalar, exists, not-exists, or expression as the SSSQL branch kind.',
+    'ASHIBA_QUERY_OPTIONAL_BRANCH_KIND_UNSUPPORTED',
+    `Unsupported optional-condition branch kind: ${value}.`,
+    'Use scalar, exists, not-exists, or expression as the optional-condition branch kind.',
     { value, supported: ['scalar', 'exists', 'not-exists', 'expression'] },
   );
 }
 
-function applySssqlRewrite(
+function applyOptionalConditionRewrite(
   sqlFile: string,
   commandName: string,
-  options: SssqlRewriteOptions,
+  options: OptionalConditionRewriteOptions,
   transform: (sql: string) => unknown
-): SssqlRewriteReport {
+): OptionalConditionRewriteReport {
   const absoluteInputPath = path.resolve(sqlFile);
   const originalSql = readFileSync(absoluteInputPath, 'utf8');
   const transformed = transform(originalSql);
@@ -166,7 +166,7 @@ function assertNoCommentLoss(before: string, after: string, commandName: string)
   const missing = beforeComments.filter((comment) => !normalizedAfter.includes(comment));
   if (missing.length > 0) {
     throw invalidCliInputError(
-      'ASHIBA_QUERY_SSSQL_COMMENT_LOSS',
+      'ASHIBA_QUERY_OPTIONAL_COMMENT_LOSS',
       `${commandName} would drop SQL comments during rewrite. Remove or relocate the comments before applying this command.`,
       'Move or remove the listed SQL comments, then rerun the rewrite command so Ashiba does not silently discard review context.',
       { commandName, missingComments: missing },

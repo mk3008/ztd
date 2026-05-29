@@ -96,7 +96,7 @@ export type AshibaQueryModelAnalysis = {
       };
     sortable?: Readonly<Record<string, AshibaSortProfileEntry>>;
   };
-  sssqlCompression?: {
+  optionalConditionCompression?: {
     enabled: true;
     branches: readonly {
       parameterName: string;

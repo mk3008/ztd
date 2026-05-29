@@ -46,7 +46,7 @@ npx ashiba init --db postgres --driver pg --with-demo-ddl
 Create a reviewable feature boundary from DDL metadata.
 
 ```bash
-npx ashiba feature scaffold --feature-name users-list --table users --action list
+npx ashiba feature scaffold users-list --table users --action list
 ```
 
 ## ashiba feature query scaffold
@@ -54,15 +54,15 @@ npx ashiba feature scaffold --feature-name users-list --table users --action lis
 Add another query boundary under an existing feature.
 
 ```bash
-npx ashiba feature query scaffold --feature users-list --query-name get-by-id --action get-by-id --table users
+npx ashiba feature query scaffold users-list get-by-id --action get-by-id --table users
 ```
 
 ## ashiba feature query refresh
 
-Refresh generated query model metadata after SQL-only edits. The command needs a feature or boundary directory selector.
+Refresh generated query model metadata after SQL-only edits.
 
 ```bash
-npx ashiba feature query refresh --feature users-list --query list
+npx ashiba feature query refresh users-list list
 ```
 
 ## ashiba feature tests scaffold
@@ -70,7 +70,7 @@ npx ashiba feature query refresh --feature users-list --query list
 Add generated mapper-test cases and human-owned test placeholders to an existing query boundary.
 
 ```bash
-npx ashiba feature tests scaffold --feature users-list
+npx ashiba feature tests scaffold users-list
 ```
 
 ## ashiba feature tests check
@@ -140,14 +140,14 @@ npx ashiba query uses table users
 npx ashiba query uses column users.email
 ```
 
-## ashiba query sssql
+## ashiba query optional
 
 Maintain SQL-first optional-condition metadata.
 
 ```bash
-npx ashiba query sssql add path/to/query.sql --filter status
-npx ashiba query sssql refresh path/to/query.sql
-npx ashiba query sssql remove path/to/query.sql --parameter status
+npx ashiba query optional add path/to/query.sql --filter status
+npx ashiba query optional refresh path/to/query.sql
+npx ashiba query optional remove path/to/query.sql --parameter status
 ```
 
 ## ashiba model-gen

@@ -3,7 +3,7 @@
 
 > **AshibaSortProfileEntry** = `object`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:59](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-core/src/index.ts#L59)
+Defined in: [packages/driver-adapter-core/src/index.ts:59](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L59)
 
 One reviewed SQL expression exposed as a safe sort key.
 
@@ -13,7 +13,7 @@ One reviewed SQL expression exposed as a safe sort key.
 
 > **sql**: `string`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:60](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-core/src/index.ts#L60)
+Defined in: [packages/driver-adapter-core/src/index.ts:60](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L60)
 
 ***
 
@@ -21,5 +21,5 @@ Defined in: [packages/driver-adapter-core/src/index.ts:60](https://github.com/mk
 
 > `optional` **defaultDirection?**: [`AshibaSortDirection`](AshibaSortDirection.md)
 
-Defined in: [packages/driver-adapter-core/src/index.ts:61](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/driver-adapter-core/src/index.ts#L61)
+Defined in: [packages/driver-adapter-core/src/index.ts:61](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L61)
 </div>

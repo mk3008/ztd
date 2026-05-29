@@ -3,7 +3,7 @@
 
 > **PgDumpSchemaPullOptions** = `object`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:6](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L6)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:6](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L6)
 
 Options used to construct an explicit PostgreSQL pg_dump schema-only command.
 
@@ -13,7 +13,7 @@ Options used to construct an explicit PostgreSQL pg_dump schema-only command.
 
 > `optional` **databaseUrl?**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:7](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L7)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:7](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L7)
 
 ***
 
@@ -21,7 +21,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:7](https://github.com/mk3008
 
 > `optional` **database?**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:8](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L8)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:8](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L8)
 
 ***
 
@@ -29,7 +29,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:8](https://github.com/mk3008
 
 > `optional` **host?**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:9](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L9)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:9](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L9)
 
 ***
 
@@ -37,7 +37,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:9](https://github.com/mk3008
 
 > `optional` **port?**: `number`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:10](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L10)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:10](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L10)
 
 ***
 
@@ -45,7 +45,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:10](https://github.com/mk300
 
 > `optional` **username?**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:11](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L11)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:11](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L11)
 
 ***
 
@@ -53,7 +53,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:11](https://github.com/mk300
 
 > `optional` **schemas?**: readonly `string`[]
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:12](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L12)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:12](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L12)
 
 ***
 
@@ -61,7 +61,7 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:12](https://github.com/mk300
 
 > `optional` **executable?**: `string`
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:13](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L13)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:13](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L13)
 
 ***
 
@@ -69,5 +69,5 @@ Defined in: [packages/ddl-pull-pg-dump/src/index.ts:13](https://github.com/mk300
 
 > `optional` **extraArgs?**: readonly `string`[]
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:14](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/ddl-pull-pg-dump/src/index.ts#L14)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:14](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L14)
 </div>

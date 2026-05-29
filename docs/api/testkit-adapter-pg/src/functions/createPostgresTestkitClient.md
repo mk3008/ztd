@@ -3,7 +3,7 @@
 
 > **createPostgresTestkitClient**&lt;`RowType`\&gt;(`options`): [`PostgresTestkitClient`](../classes/PostgresTestkitClient.md)&lt;`RowType`\&gt;
 
-Defined in: [packages/testkit-adapter-pg/src/index.ts:25](https://github.com/mk3008/ashiba/blob/887798dd82defe2a1a86ca1387fc0647d15ba5d2/packages/testkit-adapter-pg/src/index.ts#L25)
+Defined in: [packages/testkit-adapter-pg/src/index.ts:25](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/testkit-adapter-pg/src/index.ts#L25)
 
 Creates an Ashiba Postgres ZTD testkit client backed by the tested rawsql-ts implementation.
 
