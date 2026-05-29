@@ -3,7 +3,7 @@
 
 > **AshibaQueryModelAnalysis** = `object`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:80](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L80)
+Defined in: [packages/driver-adapter-core/src/index.ts:80](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-core/src/index.ts#L80)
 
 CLI-generated query metadata used by runtime adapters without parsing SQL at runtime.
 
@@ -13,7 +13,7 @@ CLI-generated query metadata used by runtime adapters without parsing SQL at run
 
 > **astParse**: `"ok"` \| `"failed"`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:81](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L81)
+Defined in: [packages/driver-adapter-core/src/index.ts:81](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-core/src/index.ts#L81)
 
 ***
 
@@ -21,7 +21,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:81](https://github.com/mk
 
 > **statementKind**: `"select"` \| `"insert"` \| `"update"` \| `"delete"` \| `"unknown"`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:82](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L82)
+Defined in: [packages/driver-adapter-core/src/index.ts:82](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-core/src/index.ts#L82)
 
 ***
 
@@ -29,7 +29,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:82](https://github.com/mk
 
 > `optional` **rootQueryShape?**: `"simple-select"` \| `"compound-select"` \| `"values"` \| `"non-select"` \| `"unknown"`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:83](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L83)
+Defined in: [packages/driver-adapter-core/src/index.ts:83](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-core/src/index.ts#L83)
 
 ***
 
@@ -37,7 +37,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:83](https://github.com/mk
 
 > **hasTopLevelOrderBy**: `boolean`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:84](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L84)
+Defined in: [packages/driver-adapter-core/src/index.ts:84](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-core/src/index.ts#L84)
 
 ***
 
@@ -45,7 +45,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:84](https://github.com/mk
 
 > `optional` **sourceHash?**: `string`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:85](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L85)
+Defined in: [packages/driver-adapter-core/src/index.ts:85](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-core/src/index.ts#L85)
 
 ***
 
@@ -53,7 +53,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:85](https://github.com/mk
 
 > `optional` **safeSort?**: `object`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:86](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L86)
+Defined in: [packages/driver-adapter-core/src/index.ts:86](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-core/src/index.ts#L86)
 
 #### insertion
 
@@ -69,7 +69,7 @@ Defined in: [packages/driver-adapter-core/src/index.ts:86](https://github.com/mk
 
 > `optional` **optionalConditionCompression?**: `object`
 
-Defined in: [packages/driver-adapter-core/src/index.ts:99](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-core/src/index.ts#L99)
+Defined in: [packages/driver-adapter-core/src/index.ts:99](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-core/src/index.ts#L99)
 
 #### enabled
 

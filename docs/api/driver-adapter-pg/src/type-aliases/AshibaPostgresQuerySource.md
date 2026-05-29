@@ -3,7 +3,7 @@
 
 > **AshibaPostgresQuerySource** = `object`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:69](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L69)
+Defined in: [packages/driver-adapter-pg/src/index.ts:69](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-pg/src/index.ts#L69)
 
 File-backed SQL query source generated or loaded from a reviewed SQL file.
 
@@ -13,7 +13,7 @@ File-backed SQL query source generated or loaded from a reviewed SQL file.
 
 > **sql**: `string`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:70](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L70)
+Defined in: [packages/driver-adapter-pg/src/index.ts:70](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-pg/src/index.ts#L70)
 
 ***
 
@@ -21,7 +21,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:70](https://github.com/mk30
 
 > `optional` **sqlPath?**: `string`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:71](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L71)
+Defined in: [packages/driver-adapter-pg/src/index.ts:71](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-pg/src/index.ts#L71)
 
 ***
 
@@ -29,7 +29,7 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:71](https://github.com/mk30
 
 > **queryModel**: [`AshibaPostgresQueryModel`](AshibaPostgresQueryModel.md)
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:72](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L72)
+Defined in: [packages/driver-adapter-pg/src/index.ts:72](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-pg/src/index.ts#L72)
 
 ***
 
@@ -37,5 +37,5 @@ Defined in: [packages/driver-adapter-pg/src/index.ts:72](https://github.com/mk30
 
 > `optional` **metadata?**: `AshibaSqlExecutionMetadata`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:73](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L73)
+Defined in: [packages/driver-adapter-pg/src/index.ts:73](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-pg/src/index.ts#L73)
 </div>

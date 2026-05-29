@@ -84,7 +84,7 @@ Use cases:
   uses table/column  Estimate impact before changing schema objects.
   outline/graph      Understand CTE-heavy SQL before editing it.
   slice              Run a smaller CTE debug query in a SQL client.
-  optional add       Add an explicit optional search condition and refresh metadata.
+  optional add       Add an SSSQL optional search condition and refresh metadata.
   lint               Catch hard-to-review query shapes before review.
 `);
 
@@ -174,8 +174,15 @@ Use case:
 
   const optional = query
     .command('optional')
-    .description('Generate and refresh SQL-first optional search condition scaffolds')
+    .description('Generate and refresh SSSQL optional search condition scaffolds')
     .addHelpText('after', `
+SSSQL notation:
+  Ashiba's name for optional-search SQL that stays valid SQL, such as
+  (:email is null or users.email = :email).
+
+Guide:
+  https://mk3008.github.io/ashiba/guide/sssql
+
 Use cases:
   add      Add an explicit optional search condition to a SQL file and refresh metadata.
   refresh  Rebuild metadata after SQL-only edits.
@@ -187,9 +194,13 @@ Use cases:
     .description('Add optional search condition branches near the closest source query')
     .addHelpText('after', `
 Use case:
-  Use this at development time to add a SQL-first optional search condition to the SQL
+  Use this at development time to add an SSSQL optional search condition to the SQL
   file itself. Runtime code still consumes generated metadata; this command is
   not a runtime SQL string API.
+
+SSSQL:
+  SSSQL means optional-search SQL written as plain SQL, for example
+  (:email is null or users.email = :email). See docs/guide/sssql.md.
 `)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--filter <name>', 'Target column for scalar scaffold, or primary anchor column for EXISTS/NOT EXISTS')
@@ -212,7 +223,7 @@ Use case:
     .description('Refresh existing optional search condition scaffolds without changing predicate meaning')
     .addHelpText('after', `
 Use case:
-  Use this after editing optional-condition SQL by hand so generated query
+  Use this after editing SSSQL optional-condition SQL by hand so generated query
   metadata matches the visible SQL again.
 `)
     .option('--format <format>', 'Output format: text or json', 'text')
@@ -229,6 +240,10 @@ Use case:
 Use case:
   Use this when an optional condition is no longer part of the query contract.
   The SQL file is updated and metadata is refreshed together.
+
+SSSQL:
+  This command removes recognized SSSQL optional-search branches and refreshes
+  the metadata used by optional-condition compression.
 `)
     .option('--format <format>', 'Output format: text or json', 'text')
     .option('--all', 'Remove all recognized optional condition branches in the query')

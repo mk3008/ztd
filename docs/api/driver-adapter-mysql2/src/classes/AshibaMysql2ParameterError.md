@@ -1,7 +1,7 @@
 <div v-pre>
 # Class: AshibaMysql2ParameterError
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:79](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L79)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:79](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-mysql2/src/index.ts#L79)
 
 Error raised when provided named parameters do not match query model metadata.
 
@@ -15,7 +15,7 @@ Error raised when provided named parameters do not match query model metadata.
 
 > **new AshibaMysql2ParameterError**(`code`, `parameterNames`): `AshibaMysql2ParameterError`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:85](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L85)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:85](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-mysql2/src/index.ts#L85)
 
 #### Parameters
 
@@ -41,7 +41,7 @@ Defined in: [packages/driver-adapter-mysql2/src/index.ts:85](https://github.com/
 
 > `readonly` **code**: `"ASHIBA_MISSING_PARAMETER"` \| `"ASHIBA_UNUSED_PARAMETER"`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:80](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L80)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:80](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-mysql2/src/index.ts#L80)
 
 ***
 
@@ -49,7 +49,7 @@ Defined in: [packages/driver-adapter-mysql2/src/index.ts:80](https://github.com/
 
 > `readonly` **parameterNames**: `string`[]
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:81](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L81)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:81](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-mysql2/src/index.ts#L81)
 
 ***
 
@@ -57,7 +57,7 @@ Defined in: [packages/driver-adapter-mysql2/src/index.ts:81](https://github.com/
 
 > `readonly` **causeText**: `string`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:82](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L82)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:82](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-mysql2/src/index.ts#L82)
 
 ***
 
@@ -65,7 +65,7 @@ Defined in: [packages/driver-adapter-mysql2/src/index.ts:82](https://github.com/
 
 > `readonly` **nextAction**: `string`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:83](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L83)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:83](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-mysql2/src/index.ts#L83)
 
 ***
 

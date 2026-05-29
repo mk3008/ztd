@@ -142,7 +142,9 @@ npx ashiba query uses column users.email
 
 ## ashiba query optional
 
-Maintain SQL-first optional-condition metadata.
+Maintain SSSQL optional-condition metadata. SSSQL is Ashiba's name for optional-search SQL that stays valid SQL, such as `(:email is null or users.email = :email)`.
+
+See [SSSQL notation](../guide/sssql.md) for the notation, runtime compression behavior, and opt-out guidance.
 
 ```bash
 npx ashiba query optional add path/to/query.sql --filter status

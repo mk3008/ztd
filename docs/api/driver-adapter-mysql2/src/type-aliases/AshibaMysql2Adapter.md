@@ -3,7 +3,7 @@
 
 > **AshibaMysql2Adapter** = `object`
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:69](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L69)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:69](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-mysql2/src/index.ts#L69)
 
 Thin mysql2 adapter interface exposed to application code.
 
@@ -13,7 +13,7 @@ Thin mysql2 adapter interface exposed to application code.
 
 > **execute**&lt;`Row`\&gt;(`query`, `params?`): `Promise`&lt;\{ `rows`: `Row`[]; `fields`: `unknown`; \}\&gt;
 
-Defined in: [packages/driver-adapter-mysql2/src/index.ts:70](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-mysql2/src/index.ts#L70)
+Defined in: [packages/driver-adapter-mysql2/src/index.ts:70](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-mysql2/src/index.ts#L70)
 
 #### Type Parameters
 

@@ -28,6 +28,9 @@ export default defineConfig({
       { text: 'Concepts', link: '/concepts/concept-map' },
     ],
     sidebar: {
+      '/guide/': [
+        { text: 'SSSQL Notation', link: '/guide/sssql' },
+      ],
       '/api/': [
         ...apiSidebarWithIndex,
       ],

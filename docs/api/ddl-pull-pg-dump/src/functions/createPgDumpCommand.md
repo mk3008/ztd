@@ -3,7 +3,7 @@
 
 > **createPgDumpCommand**(`options`): [`PgDumpCommand`](../type-aliases/PgDumpCommand.md)
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:69](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L69)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:69](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/ddl-pull-pg-dump/src/index.ts#L69)
 
 Build the pg_dump command and unredacted argument list for schema pull.
 

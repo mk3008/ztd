@@ -3,7 +3,7 @@
 
 > **NodePostgresQueryable**&lt;`Row`\&gt; = `object`
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:26](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L26)
+Defined in: [packages/driver-adapter-pg/src/index.ts:26](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-pg/src/index.ts#L26)
 
 Minimal pg-compatible client or pool contract.
 
@@ -19,7 +19,7 @@ Minimal pg-compatible client or pool contract.
 
 > **query**(`sql`, `values`): `Promise`&lt;[`NodePostgresQueryResult`](NodePostgresQueryResult.md)\<`Row`\&gt;\>
 
-Defined in: [packages/driver-adapter-pg/src/index.ts:27](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/driver-adapter-pg/src/index.ts#L27)
+Defined in: [packages/driver-adapter-pg/src/index.ts:27](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/driver-adapter-pg/src/index.ts#L27)
 
 #### Parameters
 

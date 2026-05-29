@@ -129,7 +129,7 @@ Use this section as the entry point for daily work. The command API page links e
 | Run SQL lint and DDL-aware checks | `ashiba lint <path>` | [Command API](docs/api/commands.md#ashiba-lint) |
 | Inspect, visualize, or debug complex SQL | `ashiba query outline <sqlFile>`, `ashiba query graph <sqlFile>`, `ashiba query slice <sqlFile>` | [Command API](docs/api/commands.md#ashiba-query) |
 | Find SQL assets that reference a table or column | `ashiba query uses table <target>`, `ashiba query uses column <target>` | [Command API](docs/api/commands.md#ashiba-query-uses) |
-| Maintain SQL-first optional-condition metadata | `ashiba query optional add <sqlFile>`, `ashiba query optional refresh <sqlFile>`, `ashiba query optional remove <sqlFile>` | [Command API](docs/api/commands.md#ashiba-query-optional) |
+| Maintain SSSQL optional-search metadata | `ashiba query optional add <sqlFile>`, `ashiba query optional refresh <sqlFile>`, `ashiba query optional remove <sqlFile>` | [SSSQL notation](docs/guide/sssql.md), [Command API](docs/api/commands.md#ashiba-query-optional) |
 | Generate editable query contracts from a SQL file | `ashiba model-gen <sqlFile>` | [Command API](docs/api/commands.md#ashiba-model-gen) |
 | Capture DB-backed performance evidence | `ashiba perf scenario init`, `ashiba perf scenario measure` | [Command API](docs/api/commands.md#ashiba-perf-scenario) |
 | Inspect review-first feature and query boundaries | `ashiba rfba inspect` | [Command API](docs/api/commands.md#ashiba-rfba-inspect) |

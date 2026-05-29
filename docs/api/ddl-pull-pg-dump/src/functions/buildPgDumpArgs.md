@@ -3,7 +3,7 @@
 
 > **buildPgDumpArgs**(`options`): `string`[]
 
-Defined in: [packages/ddl-pull-pg-dump/src/index.ts:90](https://github.com/mk3008/ashiba/blob/192cdfcf1e45b1db0624095e93d8f21bbd266ddb/packages/ddl-pull-pg-dump/src/index.ts#L90)
+Defined in: [packages/ddl-pull-pg-dump/src/index.ts:90](https://github.com/mk3008/ashiba/blob/d8e0689dd98d1e26eee6579c94113531307b8c2a/packages/ddl-pull-pg-dump/src/index.ts#L90)
 
 Build schema-only pg_dump arguments from explicit connection and schema options.
 

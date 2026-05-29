@@ -28,4 +28,5 @@ features:
 ## Documentation
 
 - [Command API](./api/commands.md)
+- [SSSQL notation](./guide/sssql.md)
 - [Concept map](./concepts/concept-map.md)
