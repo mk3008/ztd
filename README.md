@@ -113,27 +113,27 @@ Use this section as the entry point for daily work. The command API page links e
 
 | When you want to... | Use this | Details |
 |---|---|---|
-| Diagnose ordinary drift while editing | `ashiba check` | [Command API](docs/generated/api/commands.md#ashiba-check) |
-| Run the full local or CI gate | `ashiba check --full` | [Command API](docs/generated/api/commands.md#ashiba-check) |
-| Scaffold passive gates without hook libraries | `ashiba gate scaffold` | [Command API](docs/generated/api/commands.md#ashiba-gate-scaffold) |
-| Start a SQL-first TypeScript project shape | `ashiba init` | [Command API](docs/generated/api/commands.md#ashiba-init) |
-| Generate a feature boundary from an existing DDL table | `ashiba feature scaffold` | [Command API](docs/generated/api/commands.md#ashiba-feature-scaffold) |
-| Add another query to an existing feature | `ashiba feature query scaffold` | [Command API](docs/generated/api/commands.md#ashiba-feature-query-scaffold) |
-| Refresh generated metadata after editing SQL | `ashiba feature query refresh` | [Command API](docs/generated/api/commands.md#ashiba-feature-query-refresh) |
-| Add generated mapper-test cases and human-owned placeholders | `ashiba feature tests scaffold` | [Command API](docs/generated/api/commands.md#ashiba-feature-tests-scaffold) |
-| Detect generated mapping-test drift | `ashiba feature tests check` | [Command API](docs/generated/api/commands.md#ashiba-feature-tests-check) |
-| Check SQL parameters, result columns, and editable query contracts | `ashiba feature generated-mapper check` | [Command API](docs/generated/api/commands.md#ashiba-feature-generated-mapper-check) |
-| Run the project-level passive check gate | `ashiba project check` | [Command API](docs/generated/api/commands.md#ashiba-project-check) |
-| Check visible SQL contracts before commit or release | `ashiba check-contract` | [Command API](docs/generated/api/commands.md#ashiba-check-contract) |
-| Generate reviewable migration SQL from DDL changes | `ashiba ddl migration generate` | [Command API](docs/generated/api/commands.md#ashiba-ddl-migration-generate) |
-| Run SQL lint and DDL-aware checks | `ashiba lint <path>` | [Command API](docs/generated/api/commands.md#ashiba-lint) |
-| Inspect, visualize, or debug complex SQL | `ashiba query outline <sqlFile>`, `ashiba query graph <sqlFile>`, `ashiba query slice <sqlFile>` | [Command API](docs/generated/api/commands.md#ashiba-query) |
-| Find SQL assets that reference a table or column | `ashiba query uses table <target>`, `ashiba query uses column <target>` | [Command API](docs/generated/api/commands.md#ashiba-query-uses) |
-| Maintain SSSQL optional-search metadata | `ashiba query optional add <sqlFile>`, `ashiba query optional refresh <sqlFile>`, `ashiba query optional remove <sqlFile>` | [SSSQL notation](docs/guide/sssql.md), [Command API](docs/generated/api/commands.md#ashiba-query-optional) |
-| Add dynamic ORDER BY without accepting raw SQL fragments | Safe sort | [Safe sort](docs/guide/safe-sort.md), [Command API](docs/generated/api/driver-adapter-core/src/type-aliases/AshibaSortInput.md) |
-| Generate editable query contracts from a SQL file | `ashiba model-gen <sqlFile>` | [Command API](docs/generated/api/commands.md#ashiba-model-gen) |
-| Capture DB-backed performance evidence | `ashiba perf scenario init`, `ashiba perf scenario measure` | [Command API](docs/generated/api/commands.md#ashiba-perf-scenario) |
-| Inspect review-first feature and query boundaries | `ashiba rfba inspect` | [Command API](docs/generated/api/commands.md#ashiba-rfba-inspect) |
+| Diagnose ordinary drift while editing | `ashiba check` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-check) |
+| Run the full local or CI gate | `ashiba check --full` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-check) |
+| Scaffold passive gates without hook libraries | `ashiba gate scaffold` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-gate-scaffold) |
+| Start a SQL-first TypeScript project shape | `ashiba init` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-init) |
+| Generate a feature boundary from an existing DDL table | `ashiba feature scaffold` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-feature-scaffold) |
+| Add another query to an existing feature | `ashiba feature query scaffold` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-feature-query-scaffold) |
+| Refresh generated metadata after editing SQL | `ashiba feature query refresh` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-feature-query-refresh) |
+| Add generated mapper-test cases and human-owned placeholders | `ashiba feature tests scaffold` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-feature-tests-scaffold) |
+| Detect generated mapping-test drift | `ashiba feature tests check` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-feature-tests-check) |
+| Check SQL parameters, result columns, and editable query contracts | `ashiba feature generated-mapper check` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-feature-generated-mapper-check) |
+| Run the project-level passive check gate | `ashiba project check` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-project-check) |
+| Check visible SQL contracts before commit or release | `ashiba check-contract` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-check-contract) |
+| Generate reviewable migration SQL from DDL changes | `ashiba ddl migration generate` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-ddl-migration-generate) |
+| Run SQL lint and DDL-aware checks | `ashiba lint <path>` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-lint) |
+| Inspect, visualize, or debug complex SQL | `ashiba query outline <sqlFile>`, `ashiba query graph <sqlFile>`, `ashiba query slice <sqlFile>` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-query) |
+| Find SQL assets that reference a table or column | `ashiba query uses table <target>`, `ashiba query uses column <target>` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-query-uses) |
+| Maintain SSSQL optional-search metadata | `ashiba query optional add <sqlFile>`, `ashiba query optional refresh <sqlFile>`, `ashiba query optional remove <sqlFile>` | [SSSQL notation](docs/guide/sssql.md), [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-query-optional) |
+| Add dynamic ORDER BY without accepting raw SQL fragments | Safe sort | [Safe sort](docs/guide/safe-sort.md), [Command API](https://mk3008.github.io/ashiba/generated/api/driver-adapter-core/src/type-aliases/AshibaSortInput) |
+| Generate editable query contracts from a SQL file | `ashiba model-gen <sqlFile>` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-model-gen) |
+| Capture DB-backed performance evidence | `ashiba perf scenario init`, `ashiba perf scenario measure` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-perf-scenario) |
+| Inspect review-first feature and query boundaries | `ashiba rfba inspect` | [Command API](https://mk3008.github.io/ashiba/generated/api/commands#ashiba-rfba-inspect) |
 
 ## Typical Loops
 
@@ -248,7 +248,7 @@ The README explains where to start. Command help and `ashiba describe command --
 
 ## Further Reading
 
-- [Command API](docs/generated/api/commands.md)
+- [Command API](https://mk3008.github.io/ashiba/generated/api/commands)
 
 ## Development
 
