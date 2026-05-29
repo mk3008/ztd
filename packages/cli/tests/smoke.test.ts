@@ -1030,6 +1030,35 @@ describe('@ashiba/cli smoke', () => {
     }
   });
 
+  test('project check deduplicates lint files across overlapping sqlRoots', () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-project-check-overlap-roots-'));
+
+    try {
+      mkdirSync(path.join(rootDir, 'db', 'ddl'), { recursive: true });
+      mkdirSync(path.join(rootDir, 'src', 'features', 'users-search', 'queries', 'search'), { recursive: true });
+      writeFileSync(path.join(rootDir, 'ashiba.config.json'), JSON.stringify({
+        featureRoot: 'src/features',
+        sqlRoots: ['src/features', 'src/features/users-search'],
+        ddl: { sourceDir: 'db/ddl' },
+      }, null, 2), 'utf8');
+      writeFileSync(path.join(rootDir, 'db', 'ddl', 'public.sql'), 'create table public.users (user_id integer primary key, email text not null);', 'utf8');
+      writeFileSync(path.join(rootDir, 'src', 'features', 'users-search', 'queries', 'search', 'search.sql'), 'select missing_id from public.users;', 'utf8');
+
+      const result = runProjectCheck({ rootDir });
+
+      expect(result.coverage.lintFiles).toBe(1);
+      expect(result.errors.filter((issue) => issue.code === 'ASHIBA_PROJECT_SQL_LINT_FAILED')).toHaveLength(1);
+      expect(result.errors).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          code: 'ASHIBA_PROJECT_SQL_LINT_FAILED',
+          file: 'src/features/users-search/queries/search/search.sql',
+        }),
+      ]));
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
   test('project check warns when INSERT omits defaulted DDL columns', () => {
     const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-project-check-insert-warning-'));
 
@@ -1288,6 +1317,27 @@ describe('@ashiba/cli smoke', () => {
         name: 'starter',
         private: true,
         packageManager: 'pnpm@10.19.0',
+      }, null, 2)}\n`, 'utf8');
+      writeFileSync(path.join(rootDir, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n', 'utf8');
+
+      runGateScaffold({ rootDir });
+
+      expect(readFileSync(path.join(rootDir, '.github', 'workflows', 'ashiba-contract.yml'), 'utf8')).toContain('pnpm/action-setup');
+      expect(readFileSync(path.join(rootDir, '.github', 'workflows', 'ashiba-contract.yml'), 'utf8')).toContain('pnpm install --frozen-lockfile');
+      expect(readFileSync(path.join(rootDir, '.github', 'workflows', 'ashiba-contract.yml'), 'utf8')).toContain('pnpm ashiba:verify');
+      expect(readFileSync(path.join(rootDir, '.githooks', 'pre-push'), 'utf8')).toContain('pnpm ashiba:verify');
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  test('gate scaffold detects pnpm from lockfile without packageManager metadata', () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-gate-pnpm-lock-'));
+
+    try {
+      writeFileSync(path.join(rootDir, 'package.json'), `${JSON.stringify({
+        name: 'starter',
+        private: true,
       }, null, 2)}\n`, 'utf8');
       writeFileSync(path.join(rootDir, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n', 'utf8');
 

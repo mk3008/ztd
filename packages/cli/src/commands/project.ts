@@ -256,7 +256,13 @@ function runOptionalSqlLint(context: ProjectCheckContext): LintResult | undefine
   if (roots.length === 0) {
     return undefined;
   }
-  const files = roots.flatMap((root) => runLint(root.configured, { rootDir: context.rootDir }).files);
+  const filesByPath = new Map<string, LintResult['files'][number]>();
+  for (const root of roots) {
+    for (const file of runLint(root.configured, { rootDir: context.rootDir }).files) {
+      filesByPath.set(file.file, file);
+    }
+  }
+  const files = [...filesByPath.values()].sort((left, right) => left.file.localeCompare(right.file));
   return {
     rootDir: context.rootDir,
     target: context.config.sqlRoots.join(','),

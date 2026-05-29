@@ -231,16 +231,17 @@ function nativePrePushHook(packageManager: 'npm' | 'pnpm'): string {
 
 function resolvePackageManager(rootDir: string): 'npm' | 'pnpm' {
   const packageJsonPath = path.join(rootDir, 'package.json');
-  if (!existsSync(packageJsonPath)) return 'npm';
+  const pnpmLockPath = path.join(rootDir, 'pnpm-lock.yaml');
+  if (!existsSync(packageJsonPath)) return existsSync(pnpmLockPath) ? 'pnpm' : 'npm';
   try {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { packageManager?: unknown };
     if (typeof packageJson.packageManager === 'string' && packageJson.packageManager.startsWith('pnpm@')) {
       return 'pnpm';
     }
   } catch {
-    return 'npm';
+    return existsSync(pnpmLockPath) ? 'pnpm' : 'npm';
   }
-  return 'npm';
+  return existsSync(pnpmLockPath) ? 'pnpm' : 'npm';
 }
 
 function resolveInstallCommand(rootDir: string, packageManager: 'npm' | 'pnpm'): string {
