@@ -222,6 +222,8 @@ function readDbEnv(name: string, fallback: string): string {
     rootQueryShape?: 'simple-select' | 'compound-select' | 'values' | 'non-select' | 'unknown';
     hasTopLevelOrderBy: boolean;
     sourceHash?: string;
+    resultColumnTypes?: Record<string, string>;
+    parameterTypes?: Record<string, string>;
   };
   bindings?: {
     postgres?: { sourceHash?: string; sql: string; orderedNames: readonly string[] };
@@ -467,6 +469,11 @@ export type QuerySpecSqlSource = {
   id: string;
   path: string;
   sql: string;
+  queryModel?: {
+    analysis?: {
+      resultColumnTypes?: Record<string, string>;
+    };
+  };
 };
 
 type QuerySpecExecutor<Input, Output> = (
@@ -627,9 +634,37 @@ function createQuerySpecExecutor(
         rewriteApplied: false,
       });
       const result = await testkitClient.query(bound.boundSql, bound.boundValues);
-      return result.rows as T[];
+      return coerceRowsByResultTypes(result.rows, query.queryModel?.analysis?.resultColumnTypes) as T[];
     },
   };
+}
+
+function coerceRowsByResultTypes(
+  rows: unknown[],
+  resultColumnTypes: Record<string, string> | undefined,
+): unknown[] {
+  if (!resultColumnTypes) return rows;
+  return rows.map((row) => {
+    if (!isPlainRecord(row)) return row;
+    return Object.fromEntries(Object.entries(row).map(([key, value]) => [
+      key,
+      coerceValueByResultType(value, resultColumnTypes[key]),
+    ]));
+  });
+}
+
+function coerceValueByResultType(value: unknown, resultType: string | undefined): unknown {
+  if (value === null || value === undefined) return value;
+  if (resultType === 'number' && typeof value === 'string' && value.trim() !== '') {
+    const next = Number(value);
+    return Number.isFinite(next) ? next : value;
+  }
+  if (resultType === 'boolean' && typeof value === 'string') {
+    const normalized = value.toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return value;
 }
 
 function loadStarterDefaults(rootDir: string): {

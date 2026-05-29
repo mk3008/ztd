@@ -1212,6 +1212,7 @@ function buildSharedFiles(): GeneratedFile[] {
         "    rootQueryShape?: 'simple-select' | 'compound-select' | 'values' | 'non-select' | 'unknown';",
         '    hasTopLevelOrderBy: boolean;',
         '    sourceHash?: string;',
+        '    resultColumnTypes?: Record<string, string>;',
         '    parameterTypes?: Record<string, string>;',
         '  };',
         '  bindings?: {',
