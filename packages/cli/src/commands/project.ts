@@ -20,6 +20,7 @@ export interface ProjectCheckIssue {
   file?: string;
   table?: string;
   column?: string;
+  details?: string[];
   nextAction?: string;
 }
 
@@ -147,7 +148,7 @@ export function runProjectCheck(options: ProjectCheckOptions = {}): ProjectCheck
       if (featureTests) {
         checks.featureTests = featureTests;
         coverage.featureTestQueries = featureTests.checked.length;
-        appendIssues(errors, warnings, featureTestsIssues(featureTests));
+        appendIssues(errors, warnings, featureTestsIssues(featureTests, pathConfig));
       }
     } catch (error) {
       errors.push(checkExecutionIssue('ASHIBA_PROJECT_FEATURE_TESTS_CHECK_ERROR', 'Feature tests check could not complete.', error));
@@ -412,16 +413,25 @@ function contractIssues(result: CheckContractResult): ProjectCheckIssue[] {
   return issues;
 }
 
-function featureTestsIssues(result: FeatureTestsCheckResult): ProjectCheckIssue[] {
+function featureTestsIssues(result: FeatureTestsCheckResult, config: ProjectPathConfig): ProjectCheckIssue[] {
   const issues: ProjectCheckIssue[] = [];
   for (const entry of result.checked) {
+    const queryDir = `${config.featureRoot}/${entry.feature}/queries/${entry.query}`;
+    const sqlFile = `${queryDir}/${entry.query}.sql`;
+    const queryFile = `${queryDir}/query.ts`;
+    const generatedTestDir = `${queryDir}/tests/generated`;
     for (const issue of entry.issues) {
       issues.push({
         code: 'ASHIBA_PROJECT_FEATURE_TESTS_FAILED',
         severity: 'error',
         message: issue,
-        file: `src/features/${entry.feature}/queries/${entry.query}`,
-        nextAction: 'Run ashiba feature tests check --fix or update generated mapping tests intentionally.',
+        file: queryDir,
+        details: [
+          `visible SQL: ${sqlFile}`,
+          `editable mapper boundary: ${queryFile}`,
+          `library-owned generated mapping tests: ${generatedTestDir}`,
+        ],
+        nextAction: `If the DDL change is intended, have a human or AI update the visible SQL and editable mapper boundary first, then run ashiba feature tests check ${entry.feature} --query ${entry.query} --fix to refresh generated mapping test assets.`,
       });
     }
   }
@@ -566,6 +576,7 @@ function formatIssue(issue: ProjectCheckIssue): string {
   if (issue.file) parts.push(`  file: ${issue.file}`);
   if (issue.table) parts.push(`  table: ${issue.table}`);
   if (issue.column) parts.push(`  column: ${issue.column}`);
+  for (const detail of issue.details ?? []) parts.push(`  detail: ${detail}`);
   if (issue.nextAction) parts.push(`  next: ${issue.nextAction}`);
   return parts.join('\n');
 }

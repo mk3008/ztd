@@ -99,6 +99,12 @@ npx ashiba check
 npx ashiba check --full
 ```
 
+When DDL and generated contracts drift apart, Ashiba should make the repair path visible: which SQL file changed, which editable TypeScript boundary needs attention, and which generated mapping-test assets can be refreshed.
+
+<p align="center">
+  <img src="docs/public/brand/ashiba-drift-check.gif" alt="Ashiba drift check: edit DDL, see mapper tests fail, inspect check output, repair SQL and query boundary, then pass checks again." width="900">
+</p>
+
 ## Supported DBMS And Drivers
 
 Ashiba chooses DBMS and wrapped driver explicitly. PostgreSQL is the most complete path today. MySQL and SQL Server have driver adapters, with starter and testkit coverage still catching up.
@@ -192,7 +198,7 @@ Use this when SQL review needs structure, dependencies, or focused slices.
 
 ```bash
 npx ashiba ddl migration generate \
-  --from-dir path/to/current-db-ddl \
+  --from-git main:db/ddl \
   --to-dir db/ddl \
   --out tmp/ddl/migration.sql \
   --no-drop-tables \
@@ -202,6 +208,10 @@ npx ashiba ddl migration generate \
 ```
 
 Ashiba writes migration SQL to `--out` and prints a JSON review report with summary, apply plan, and risks. Your application or operator process still owns DB connection, migration apply, rollback policy, and deployment timing.
+
+<p align="center">
+  <img src="docs/public/brand/ashiba-migration-generate.gif" alt="Ashiba migration review: compare committed DDL from a git branch with local DDL and write reviewable migration SQL." width="900">
+</p>
 
 ## Configuration
 

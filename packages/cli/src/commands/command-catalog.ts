@@ -166,6 +166,8 @@ export const COMMANDS: readonly CommandSpec[] = [
       { flags: '--to <path>', description: 'Desired or new DDL snapshot file.' },
       { flags: '--from-dir <path>', description: 'Current or old DDL snapshot directory; reads .sql files recursively in stable order.' },
       { flags: '--to-dir <path>', description: 'Desired or new DDL snapshot directory; reads .sql files recursively in stable order.' },
+      { flags: '--from-git <ref:path>', description: 'Current or old DDL snapshot from a git ref, for example main:db/ddl.' },
+      { flags: '--to-git <ref:path>', description: 'Desired or new DDL snapshot from a git ref, for example feature/schema:db/ddl.' },
       { flags: '--out <path>', description: 'Write generated migration SQL to this file.' },
       commonDryRun,
       { flags: '--no-drop-tables', description: 'Do not emit DROP TABLE statements even when table drops are detected.' },
@@ -175,13 +177,16 @@ export const COMMANDS: readonly CommandSpec[] = [
       commonFormat,
     ],
     notes: [
-      'Use either --from/--to for single DDL snapshot files or --from-dir/--to-dir for recursive DDL directories.',
-      '--from or --from-dir means the current/old database shape. --to or --to-dir means the desired/new local DDL shape.',
+      'Use --from/--to for single DDL snapshot files, --from-dir/--to-dir for recursive DDL directories, or --from-git/--to-git for a committed git ref plus path.',
+      '--from, --from-dir, or --from-git means the current/old database shape. --to, --to-dir, or --to-git means the desired/new local DDL shape.',
       'Use --out when you want a migration SQL artifact. Use --dry-run when you only want to preview.',
       'Use --no-drop-tables, --no-drop-columns, --no-drop-constraints, and --no-drop-indexes when Ashiba should report destructive differences without emitting destructive SQL.',
       '--format json is for machine-readable migration risk reporting; text is for review in a terminal.',
     ],
-    examples: ['npx ashiba ddl migration generate --from-dir path/to/current-db-ddl --to-dir db/ddl --out tmp/ddl/migration.sql --no-drop-tables --no-drop-columns --no-drop-constraints'],
+    examples: [
+      'npx ashiba ddl migration generate --from-dir path/to/current-db-ddl --to-dir db/ddl --out tmp/ddl/migration.sql --no-drop-tables --no-drop-columns --no-drop-constraints',
+      'npx ashiba ddl migration generate --from-git main:db/ddl --to-dir db/ddl --out tmp/ddl/migration.sql',
+    ],
   },
   {
     name: 'feature scaffold',

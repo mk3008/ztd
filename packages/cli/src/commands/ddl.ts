@@ -1,14 +1,19 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import type { Command } from 'commander';
 import { compareDdlSql } from '../ddl-diff/index.js';
 import { invalidCliInputError, requiredCliValueError } from '../errors.js';
+
+type GitRunner = (args: string[], context: { label: string; spec: string; cwd?: string }) => string;
 
 export interface DdlMigrationGenerateOptions {
   from?: string;
   to?: string;
   fromDir?: string;
   toDir?: string;
+  fromGit?: string;
+  toGit?: string;
   out?: string;
   format?: 'text' | 'json';
   dryRun?: boolean;
@@ -16,6 +21,8 @@ export interface DdlMigrationGenerateOptions {
   dropColumns?: boolean;
   dropConstraints?: boolean;
   dropIndexes?: boolean;
+  gitCwd?: string;
+  gitRunner?: GitRunner;
 }
 
 export function registerDdlCommand(program: Command): void {
@@ -38,6 +45,8 @@ Use case:
     .option('--to <path>', 'Desired or new DDL snapshot file')
     .option('--from-dir <path>', 'Current or old DDL snapshot directory; reads .sql files recursively in stable order')
     .option('--to-dir <path>', 'Desired or new DDL snapshot directory; reads .sql files recursively in stable order')
+    .option('--from-git <ref:path>', 'Current or old DDL snapshot from a git ref, for example main:db/ddl')
+    .option('--to-git <ref:path>', 'Desired or new DDL snapshot from a git ref, for example feature/schema:db/ddl')
     .option('--out <path>', 'Write generated migration SQL to this file')
     .option('--dry-run', 'Preview generated migration SQL without writing --out', false)
     .option('--no-drop-tables', 'Do not emit DROP TABLE statements even when table drops are detected')
@@ -55,8 +64,26 @@ export function runDdlMigrationGenerate(
   options: DdlMigrationGenerateOptions,
   renderOptions: { commandKind?: string; title?: string } = {}
 ): string {
-  const from = readDdlInput(options.from, options.fromDir, '--from', '--from-dir');
-  const to = readDdlInput(options.to, options.toDir, '--to', '--to-dir');
+  const from = readDdlInput({
+    filePath: options.from,
+    dirPath: options.fromDir,
+    gitSpec: options.fromGit,
+    gitCwd: options.gitCwd,
+    gitRunner: options.gitRunner,
+    fileLabel: '--from',
+    dirLabel: '--from-dir',
+    gitLabel: '--from-git',
+  });
+  const to = readDdlInput({
+    filePath: options.to,
+    dirPath: options.toDir,
+    gitSpec: options.toGit,
+    gitCwd: options.gitCwd,
+    gitRunner: options.gitRunner,
+    fileLabel: '--to',
+    dirLabel: '--to-dir',
+    gitLabel: '--to-git',
+  });
   const safety = {
     dropTables: options.dropTables ?? true,
     dropColumns: options.dropColumns ?? true,
@@ -118,21 +145,38 @@ function requirePath(value: string | undefined, label: string): string {
   return path.normalize(value);
 }
 
-function readDdlInput(filePath: string | undefined, dirPath: string | undefined, fileLabel: string, dirLabel: string): {
+function readDdlInput(input: {
+  filePath: string | undefined;
+  dirPath: string | undefined;
+  gitSpec: string | undefined;
+  gitCwd: string | undefined;
+  gitRunner: GitRunner | undefined;
+  fileLabel: string;
+  dirLabel: string;
+  gitLabel: string;
+}): {
   path: string;
   sql: string;
   files: string[];
 } {
-  if (filePath && dirPath) {
+  const selected = [
+    input.filePath ? input.fileLabel : undefined,
+    input.dirPath ? input.dirLabel : undefined,
+    input.gitSpec ? input.gitLabel : undefined,
+  ].filter((label): label is string => label !== undefined);
+  if (selected.length > 1) {
     throw invalidCliInputError(
       'ASHIBA_DDL_INPUT_AMBIGUOUS',
-      `${fileLabel} and ${dirLabel} cannot be used together.`,
-      `Pass either ${fileLabel} for a single DDL file or ${dirLabel} for a recursive DDL directory.`,
-      { options: [fileLabel, dirLabel] },
+      `${selected.join(' and ')} cannot be used together.`,
+      `Pass only one DDL source: ${input.fileLabel}, ${input.dirLabel}, or ${input.gitLabel}.`,
+      { options: selected },
     );
   }
-  if (dirPath) {
-    const resolved = requirePath(dirPath, dirLabel);
+  if (input.gitSpec) {
+    return readGitDdlInput(input.gitSpec, input.gitLabel, input.gitCwd, input.gitRunner);
+  }
+  if (input.dirPath) {
+    const resolved = requirePath(input.dirPath, input.dirLabel);
     const files = collectSqlFiles(resolved);
     return {
       path: resolved,
@@ -140,12 +184,12 @@ function readDdlInput(filePath: string | undefined, dirPath: string | undefined,
       sql: files.map((file) => readFileSync(file, 'utf8').trimEnd()).filter((sql) => sql.length > 0).join('\n\n'),
     };
   }
-  const resolved = requirePath(filePath, fileLabel);
+  const resolved = requirePath(input.filePath, input.fileLabel);
   if (!existsSync(resolved)) {
     throw invalidCliInputError(
       'ASHIBA_DDL_INPUT_FILE_NOT_FOUND',
       `DDL input file does not exist: ${resolved}.`,
-      `Check the file path, or pass a DDL directory with ${dirLabel}.`,
+      `Check the file path, or pass a DDL directory with ${input.dirLabel}.`,
       { file: resolved },
     );
   }
@@ -154,7 +198,7 @@ function readDdlInput(filePath: string | undefined, dirPath: string | undefined,
     throw invalidCliInputError(
       'ASHIBA_DDL_INPUT_FILE_NOT_FILE',
       `DDL input path is not a file: ${resolved}.`,
-      `Pass a file to ${fileLabel}, or use ${dirLabel} for recursive directory input.`,
+      `Pass a file to ${input.fileLabel}, or use ${input.dirLabel} for recursive directory input.`,
       { file: resolved },
     );
   }
@@ -163,6 +207,75 @@ function readDdlInput(filePath: string | undefined, dirPath: string | undefined,
     files: [],
     sql: readFileSync(resolved, 'utf8'),
   };
+}
+
+function readGitDdlInput(spec: string, label: string, gitCwd: string | undefined, gitRunner: GitRunner | undefined): { path: string; sql: string; files: string[] } {
+  const parsed = parseGitDdlSpec(spec, label);
+  const object = `${parsed.ref}:${parsed.treePath}`;
+  const type = runGit(['cat-file', '-t', object], label, spec, gitCwd, gitRunner).trim();
+
+  if (type === 'blob') {
+    return {
+      path: `${parsed.ref}:${path.posix.normalize(parsed.treePath)}`,
+      files: [],
+      sql: runGit(['show', object], label, spec, gitCwd, gitRunner),
+    };
+  }
+  if (type !== 'tree') {
+    throw invalidCliInputError(
+      'ASHIBA_DDL_INPUT_GIT_NOT_FILE_OR_DIR',
+      `Git DDL input is neither a file nor a directory: ${spec}.`,
+      `Pass ${label} as <ref>:<sql-file-or-ddl-directory>.`,
+      { spec, type },
+    );
+  }
+
+  const listed = runGit(['ls-tree', '-r', '--name-only', parsed.ref, '--', parsed.treePath], label, spec, gitCwd, gitRunner)
+    .split(/\r?\n/)
+    .map((file) => file.trim())
+    .filter((file) => file.length > 0 && file.toLowerCase().endsWith('.sql'))
+    .sort();
+  const sql = listed
+    .map((file) => runGit(['show', `${parsed.ref}:${file}`], label, spec, gitCwd, gitRunner).trimEnd())
+    .filter((text) => text.length > 0)
+    .join('\n\n');
+  return {
+    path: `${parsed.ref}:${path.posix.normalize(parsed.treePath)}`,
+    files: listed.map((file) => `${parsed.ref}:${file}`),
+    sql,
+  };
+}
+
+function parseGitDdlSpec(spec: string, label: string): { ref: string; treePath: string } {
+  const separator = spec.indexOf(':');
+  if (separator <= 0 || separator === spec.length - 1) {
+    throw invalidCliInputError(
+      'ASHIBA_DDL_INPUT_GIT_SPEC_INVALID',
+      `Invalid git DDL input for ${label}: ${spec}.`,
+      `Pass ${label} as <ref>:<sql-file-or-ddl-directory>, for example main:db/ddl.`,
+      { spec },
+    );
+  }
+  const ref = spec.slice(0, separator);
+  const treePath = spec.slice(separator + 1).replaceAll('\\', '/');
+  return { ref, treePath };
+}
+
+function runGit(args: string[], label: string, spec: string, gitCwd: string | undefined, gitRunner: GitRunner | undefined): string {
+  try {
+    if (gitRunner) {
+      return gitRunner(args, { label, spec, cwd: gitCwd });
+    }
+    return execFileSync('git', args, { cwd: gitCwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (error) {
+    const stderr = error instanceof Error && 'stderr' in error ? String((error as { stderr?: unknown }).stderr ?? '') : '';
+    throw invalidCliInputError(
+      'ASHIBA_DDL_INPUT_GIT_READ_FAILED',
+      `Failed to read DDL from git input ${label} ${spec}.`,
+      stderr.trim() || `Check that the git ref and path exist: ${spec}.`,
+      { spec },
+    );
+  }
 }
 
 function collectSqlFiles(dir: string): string[] {

@@ -366,6 +366,43 @@ describe('@ashiba-ts/cli smoke', () => {
     }
   });
 
+  test('can compare a committed git DDL snapshot against the working DDL directory', () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-ddl-migration-git-'));
+
+    try {
+      const ddlDir = path.join(rootDir, 'db', 'ddl');
+      const outPath = path.join(rootDir, 'migration.sql');
+      mkdirSync(ddlDir, { recursive: true });
+      writeFileSync(path.join(ddlDir, 'public.sql'), 'CREATE TABLE public.users (id integer not null, email text);', 'utf8');
+
+      const output = runDdlMigrationGenerate({
+        fromGit: 'HEAD:db/ddl',
+        toDir: ddlDir,
+        out: outPath,
+        gitRunner: (args) => {
+          if (args[0] === 'cat-file') {
+            return 'tree\n';
+          }
+          if (args[0] === 'ls-tree') {
+            return 'db/ddl/public.sql\n';
+          }
+          if (args[0] === 'show') {
+            return 'CREATE TABLE public.users (id integer not null);';
+          }
+          throw new Error(`Unexpected git args: ${args.join(' ')}`);
+        },
+      });
+
+      expect(output).toContain('from: HEAD:db/ddl');
+      expect(output).toContain('from files: 1');
+      expect(output).toContain('to files: 1');
+      expect(output).toContain('add column email');
+      expect(readFileSync(outPath, 'utf8')).toContain('ADD COLUMN');
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
   test('previews ddl migration generate without writing output in dry-run mode', () => {
     const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-ddl-migration-dry-run-'));
 
@@ -1080,6 +1117,47 @@ describe('@ashiba-ts/cli smoke', () => {
       expect(text).toContain('duration ms:');
       expect(text).toContain('coverage: ddlFiles=1, sqlFiles=1, mapperQueries=1, catalogSpecs=1, featureTestQueries=1, lintFiles=1');
       expect(text).toContain('timings:');
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  test('project check explains where humans or AI should repair DDL-driven drift', () => {
+    const rootDir = mkdtempSync(path.join(tmpdir(), 'ashiba-project-check-ddl-repair-'));
+
+    try {
+      const ddlPath = path.join(rootDir, 'db', 'ddl', 'public.sql');
+      mkdirSync(path.dirname(ddlPath), { recursive: true });
+      writeFileSync(ddlPath, [
+        'create table public.users (',
+        '  user_id bigserial primary key,',
+        '  email text not null,',
+        '  display_name text',
+        ');',
+        '',
+      ].join('\n'), 'utf8');
+      runFeatureScaffold({ rootDir, table: 'users', action: 'list' });
+
+      writeFileSync(ddlPath, [
+        'create table public.users (',
+        '  user_id bigserial primary key,',
+        '  email text not null,',
+        '  nickname text,',
+        '  status text not null default \'active\'',
+        ');',
+        '',
+      ].join('\n'), 'utf8');
+
+      const result = runProjectCheck({ rootDir });
+      const text = formatProjectCheckResult(result);
+
+      expect(result.ok).toBe(false);
+      expect(text).toContain('ASHIBA_PROJECT_FEATURE_TESTS_FAILED');
+      expect(text).toContain('visible SQL: src/features/users-list/queries/list/list.sql');
+      expect(text).toContain('editable mapper boundary: src/features/users-list/queries/list/query.ts');
+      expect(text).toContain('library-owned generated mapping tests: src/features/users-list/queries/list/tests/generated');
+      expect(text).toContain('have a human or AI update the visible SQL and editable mapper boundary first');
+      expect(text).toContain('ashiba feature tests check users-list --query list --fix');
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
